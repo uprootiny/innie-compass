@@ -289,6 +289,35 @@ h1 {
 .api-status.invalid { color: #e87c7c; }
 .api-status.invalid::before { background: #e87c7c; }
 
+/* Language buttons */
+.lang-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lang-btn {
+  padding: 8px 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lang-btn:hover {
+  border-color: var(--text-dim);
+  color: var(--text-soft);
+}
+
+.lang-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-abyss);
+}
+
 /* Main compass area */
 .compass-container {
   flex: 1;
@@ -553,15 +582,54 @@ h1 {
   transform: translateY(0);
 }
 
-.reflection-echo:nth-child(1) { transition-delay: 0.1s; }
-.reflection-echo:nth-child(2) { transition-delay: 0.2s; }
+.reflection-echo {
+  cursor: pointer;
+}
 
-.reflection-echo .lang {
-  font-size: 8px;
-  color: var(--text-ghost);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-left: 6px;
+.reflection-echo:hover {
+  color: var(--text-bright);
+}
+
+/* Phrase cloud - expands from tapped echo */
+.phrase-cloud {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 14, 20, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 280px;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease-out-expo);
+}
+
+.phrase-cloud.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.phrase-cloud-item {
+  font-size: 11px;
+  color: var(--text-soft);
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  opacity: 0;
+  animation: fadeInUp 0.3s var(--ease-out-expo) forwards;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Axis labels */
@@ -1017,18 +1085,28 @@ footer {
           <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
         </optgroup>
         <optgroup label="Free Models">
-          <option value="mistralai/devstral-small:free">Devstral Small (free)</option>
-          <option value="qwen/qwen-2.5-coder-32b-instruct:free">Qwen 2.5 Coder 32B (free)</option>
-          <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (free)</option>
-          <option value="deepseek/deepseek-chat:free">DeepSeek Chat (free)</option>
-          <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (free)</option>
+          <option value="mistralai/devstral-small-2505:free">Devstral Small (free)</option>
+          <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek Chat v3 (free)</option>
+          <option value="google/gemini-2.0-flash-001:free">Gemini 2.0 Flash (free)</option>
+          <option value="qwen/qwen3-235b-a22b:free">Qwen3 235B (free)</option>
+          <option value="meta-llama/llama-4-maverick:free">Llama 4 Maverick (free)</option>
         </optgroup>
         <optgroup label="Premium">
           <option value="openai/gpt-4o">GPT-4o</option>
           <option value="anthropic/claude-opus-4">Claude Opus 4</option>
-          <option value="google/gemini-2.5-pro-preview">Gemini 2.5 Pro</option>
+          <option value="google/gemini-2.5-pro-preview-06-05">Gemini 2.5 Pro</option>
         </optgroup>
       </select>
+    </div>
+
+    <div class="settings-section">
+      <h3>Language</h3>
+      <div class="lang-buttons" id="lang-buttons">
+        <button class="lang-btn" data-lang="multi" onclick="setLanguageMode('multi')">Mixed</button>
+        <button class="lang-btn" data-lang="en" onclick="setLanguageMode('en')">English</button>
+        <button class="lang-btn" data-lang="de" onclick="setLanguageMode('de')">Deutsch</button>
+        <button class="lang-btn" data-lang="he" onclick="setLanguageMode('he')">עברית</button>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -1681,50 +1759,149 @@ function toggleSettings() {
   backdrop.classList.toggle('open');
 }
 
-// Reflection panel expansion with multilingual echoes
-const reflectionEchoes = {
-  // Multilingual contemplative phrases paired with regions
-  Presence: [
-    { text: 'Sei hier. Atme.', lang: 'de' },
-    { text: 'הנה אני', lang: 'he' }
-  ],
-  Grounding: [
-    { text: 'Verwurzelt im Augenblick', lang: 'de' },
-    { text: 'שורשים עמוקים', lang: 'he' }
-  ],
-  Expansion: [
-    { text: 'Was will wachsen?', lang: 'de' },
-    { text: 'להתפשט', lang: 'he' }
-  ],
-  Reflection: [
-    { text: 'Blick nach innen', lang: 'de' },
-    { text: 'מבט פנימה', lang: 'he' }
-  ],
-  Expression: [
-    { text: 'Was will gesagt werden?', lang: 'de' },
-    { text: 'לבטא', lang: 'he' }
-  ],
-  Memory: [
-    { text: 'Was lebt noch in dir?', lang: 'de' },
-    { text: 'זיכרון', lang: 'he' }
-  ],
-  Practice: [
-    { text: 'Übung macht den Meister', lang: 'de' },
-    { text: 'תרגול', lang: 'he' }
-  ],
-  Vision: [
-    { text: 'Was will werden?', lang: 'de' },
-    { text: 'חזון', lang: 'he' }
-  ],
-  Connection: [
-    { text: 'Wer kommt dir in den Sinn?', lang: 'de' },
-    { text: 'קשר', lang: 'he' }
-  ],
-  default: [
-    { text: 'Wandere weiter', lang: 'de' },
-    { text: 'המשך לנדוד', lang: 'he' }
-  ]
+// Reflection panel - multilingual contemplative phrases
+// Language mode: 'multi' (default), 'en', 'de', 'he'
+let languageMode = localStorage.getItem('innie-compass-lang') || 'multi';
+
+// Expanded phrase database - multiple phrases per region per language
+const phraseDB = {
+  Presence: {
+    en: ['Be here now', 'This moment is enough', 'Rest in awareness', 'Simply be', 'Nothing to fix'],
+    de: ['Sei hier. Atme.', 'Dieser Moment genügt', 'Ruhe im Gewahrsein', 'Einfach sein', 'Nichts zu reparieren'],
+    he: ['הנה אני', 'הרגע הזה מספיק', 'נוח במודעות', 'פשוט להיות', 'אין מה לתקן']
+  },
+  Grounding: {
+    en: ['Feel your roots', 'Connected to earth', 'Stable foundation', 'Body knows', 'Weight and presence'],
+    de: ['Verwurzelt im Augenblick', 'Mit der Erde verbunden', 'Stabiles Fundament', 'Der Körper weiß', 'Gewicht und Präsenz'],
+    he: ['שורשים עמוקים', 'מחובר לאדמה', 'יסוד יציב', 'הגוף יודע', 'משקל ונוכחות']
+  },
+  Expansion: {
+    en: ['What wants to grow?', 'Room to breathe', 'Stretch into possibility', 'Beyond the edges', 'Open wide'],
+    de: ['Was will wachsen?', 'Raum zum Atmen', 'In die Möglichkeit hinein', 'Jenseits der Grenzen', 'Weit öffnen'],
+    he: ['מה רוצה לצמוח?', 'מרחב לנשימה', 'להימתח לאפשרות', 'מעבר לקצוות', 'לפתוח לרווחה']
+  },
+  Reflection: {
+    en: ['Turn inward', 'What do you see?', 'Mirror of the self', 'Quiet observation', 'Inner landscape'],
+    de: ['Blick nach innen', 'Was siehst du?', 'Spiegel des Selbst', 'Stille Beobachtung', 'Innere Landschaft'],
+    he: ['מבט פנימה', 'מה אתה רואה?', 'מראה הנפש', 'התבוננות שקטה', 'נוף פנימי']
+  },
+  Expression: {
+    en: ['What wants to be said?', 'Voice your truth', 'Let it out', 'Shape into words', 'Be heard'],
+    de: ['Was will gesagt werden?', 'Sprich deine Wahrheit', 'Lass es raus', 'In Worte fassen', 'Gehört werden'],
+    he: ['מה רוצה להיאמר?', 'הביעי את האמת', 'לשחרר', 'לעצב במילים', 'להישמע']
+  },
+  Memory: {
+    en: ['What still lives in you?', 'Echoes of before', 'What shaped you?', 'The past speaks', 'Remember gently'],
+    de: ['Was lebt noch in dir?', 'Echos von früher', 'Was hat dich geformt?', 'Die Vergangenheit spricht', 'Sanft erinnern'],
+    he: ['מה עוד חי בך?', 'הדים מהעבר', 'מה עיצב אותך?', 'העבר מדבר', 'לזכור בעדינות']
+  },
+  Practice: {
+    en: ['What skill wants honing?', 'Daily devotion', 'Small steps compound', 'The path is practice', 'Begin again'],
+    de: ['Übung macht den Meister', 'Tägliche Hingabe', 'Kleine Schritte summieren sich', 'Der Weg ist Übung', 'Neu beginnen'],
+    he: ['איזה כישור רוצה חידוד?', 'מסירות יומית', 'צעדים קטנים מצטברים', 'הדרך היא התרגול', 'להתחיל מחדש']
+  },
+  Vision: {
+    en: ['What do you see becoming?', 'Future self whispers', 'The seed knows the tree', 'Imagine forward', 'Possibility blooms'],
+    de: ['Was will werden?', 'Das zukünftige Selbst flüstert', 'Der Samen kennt den Baum', 'Nach vorne träumen', 'Möglichkeit erblüht'],
+    he: ['מה אתה רואה נהיה?', 'העצמי העתידי לוחש', 'הזרע מכיר את העץ', 'לדמיין קדימה', 'אפשרות פורחת']
+  },
+  Connection: {
+    en: ['Who comes to mind?', 'We belong to each other', 'The web between us', 'Reach out', 'Not alone'],
+    de: ['Wer kommt dir in den Sinn?', 'Wir gehören zueinander', 'Das Netz zwischen uns', 'Ausstrecken', 'Nicht allein'],
+    he: ['מי עולה בדעתך?', 'אנחנו שייכים זה לזה', 'הרשת בינינו', 'להושיט יד', 'לא לבד']
+  },
+  Solitude: {
+    en: ['Alone is not lonely', 'Space to unfold', 'Sacred silence', 'Self as company', 'Retreat inward'],
+    de: ['Allein ist nicht einsam', 'Raum zum Entfalten', 'Heilige Stille', 'Selbst als Gesellschaft', 'Nach innen zurückziehen'],
+    he: ['לבד אינו בודד', 'מרחב להתפרש', 'שתיקה קדושה', 'העצמי כחברה', 'לסגת פנימה']
+  },
+  Action: {
+    en: ['What needs doing?', 'Move with purpose', 'Energy into form', 'The next step', 'Begin now'],
+    de: ['Was muss getan werden?', 'Mit Absicht bewegen', 'Energie in Form', 'Der nächste Schritt', 'Jetzt beginnen'],
+    he: ['מה צריך לעשות?', 'לנוע עם כוונה', 'אנרגיה לצורה', 'הצעד הבא', 'להתחיל עכשיו']
+  },
+  Dreams: {
+    en: ['What symbols recur?', 'Night speaks', 'The unconscious knows', 'Follow the thread', 'Sleep wisdom'],
+    de: ['Welche Symbole kehren wieder?', 'Die Nacht spricht', 'Das Unbewusste weiß', 'Dem Faden folgen', 'Schlafweisheit'],
+    he: ['אילו סמלים חוזרים?', 'הלילה מדבר', 'התת-מודע יודע', 'לעקוב אחר החוט', 'חוכמת השינה']
+  },
+  Play: {
+    en: ['When did you last feel joy?', 'Serious about play', 'Lightness returns', 'No rules here', 'Just for fun'],
+    de: ['Wann hast du zuletzt Freude gefühlt?', 'Ernst beim Spielen', 'Leichtigkeit kehrt zurück', 'Keine Regeln hier', 'Nur zum Spaß'],
+    he: ['מתי הרגשת שמחה לאחרונה?', 'רציני לגבי משחק', 'קלילות חוזרת', 'אין כללים כאן', 'רק לכיף']
+  },
+  Body: {
+    en: ['Where do you hold tension?', 'Listen to the flesh', 'Sensation speaks', 'Wisdom of the body', 'Feel fully'],
+    de: ['Wo hältst du Spannung?', 'Höre auf das Fleisch', 'Empfindung spricht', 'Weisheit des Körpers', 'Ganz fühlen'],
+    he: ['איפה אתה מחזיק מתח?', 'הקשב לבשר', 'התחושה מדברת', 'חוכמת הגוף', 'להרגיש במלואו']
+  },
+  Breath: {
+    en: ['Take three slow breaths', 'In and out', 'Life force flows', 'Rhythm of being', 'Breathing you'],
+    de: ['Drei langsame Atemzüge', 'Ein und aus', 'Lebenskraft fließt', 'Rhythmus des Seins', 'Atmet dich'],
+    he: ['קח שלוש נשימות', 'פנימה והחוצה', 'כוח החיים זורם', 'קצב ההוויה', 'נושם אותך']
+  },
+  Purpose: {
+    en: ['What gives meaning?', 'Why you are here', 'Service to what?', 'The calling', 'Meaning-making'],
+    de: ['Was gibt Sinn?', 'Warum du hier bist', 'Dienst woran?', 'Die Berufung', 'Sinn-Stiftung'],
+    he: ['מה נותן משמעות?', 'למה אתה כאן', 'שירות למה?', 'הקריאה', 'יצירת משמעות']
+  },
+  Gratitude: {
+    en: ['Name three blessings', 'Thank the ordinary', 'Enough is here', 'Appreciation flows', 'Gift of this moment'],
+    de: ['Nenne drei Segnungen', 'Danke dem Gewöhnlichen', 'Genug ist hier', 'Wertschätzung fließt', 'Geschenk dieses Moments'],
+    he: ['שלוש ברכות', 'להודות לרגיל', 'מספיק כאן', 'הכרת תודה זורמת', 'מתנת הרגע']
+  },
+  default: {
+    en: ['Wander on', 'Keep exploring', 'Follow the pull', 'No destination', 'Drift freely'],
+    de: ['Wandere weiter', 'Erkunde weiter', 'Folge dem Zug', 'Kein Ziel', 'Frei treiben'],
+    he: ['המשך לנדוד', 'המשך לחקור', 'עקוב אחר המשיכה', 'אין יעד', 'לנדוד בחופשיות']
+  }
 };
+
+// Get phrases for current region based on language mode
+function getPhrasesForRegion(regionName, count = 2) {
+  const regionPhrases = phraseDB[regionName] || phraseDB.default;
+
+  if (languageMode === 'multi') {
+    // Return one phrase from each language
+    const langs = ['en', 'de', 'he'];
+    const shuffled = langs.sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count).map(lang => ({
+      text: regionPhrases[lang][Math.floor(Math.random() * regionPhrases[lang].length)],
+      lang
+    }));
+  } else {
+    // Return multiple phrases from selected language
+    const phrases = regionPhrases[languageMode] || regionPhrases.en;
+    const shuffled = [...phrases].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count).map(text => ({ text, lang: languageMode }));
+  }
+}
+
+// Get expanded phrase cloud for a region
+function getPhraseCloud(regionName) {
+  const regionPhrases = phraseDB[regionName] || phraseDB.default;
+  const lang = languageMode === 'multi' ? 'en' : languageMode;
+  return regionPhrases[lang] || regionPhrases.en;
+}
+
+function setLanguageMode(mode) {
+  languageMode = mode;
+  localStorage.setItem('innie-compass-lang', mode);
+  // Update current display
+  const currentRegion = state.currentRegion?.name;
+  if (currentRegion) {
+    updateReflectionEchoes(currentRegion);
+  }
+  // Update settings UI
+  updateLanguageSettingsUI();
+}
+
+function updateLanguageSettingsUI() {
+  const btns = document.querySelectorAll('.lang-btn');
+  btns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === languageMode);
+  });
+}
 
 function toggleReflectionExpand() {
   const panel = document.getElementById('reflection-panel');
@@ -1732,16 +1909,77 @@ function toggleReflectionExpand() {
 }
 
 function updateReflectionEchoes(regionName) {
-  const echo1 = document.getElementById('echo-1');
-  const echo2 = document.getElementById('echo-2');
-  const echoes = reflectionEchoes[regionName] || reflectionEchoes.default;
+  const echoContainer = document.getElementById('reflection-echoes');
+  if (!echoContainer) return;
 
-  if (echo1 && echoes[0]) {
-    echo1.innerHTML = `${echoes[0].text} <span class="lang">${echoes[0].lang}</span>`;
+  const phrases = getPhrasesForRegion(regionName, 2);
+
+  // Clear and rebuild echoes
+  echoContainer.innerHTML = '';
+
+  phrases.forEach((phrase, i) => {
+    const echo = document.createElement('div');
+    echo.className = 'reflection-echo';
+    echo.textContent = phrase.text;
+    echo.dataset.lang = phrase.lang;
+    echo.dataset.region = regionName;
+    echo.style.transitionDelay = `${0.1 + i * 0.1}s`;
+
+    // Tap to expand into phrase cloud
+    echo.onclick = (e) => {
+      e.stopPropagation();
+      expandPhraseCloud(regionName, phrase.lang, echo);
+    };
+
+    echoContainer.appendChild(echo);
+  });
+}
+
+// Expand a phrase into a cloud of related phrases
+function expandPhraseCloud(regionName, lang, sourceEl) {
+  const panel = document.getElementById('reflection-panel');
+  let cloud = document.getElementById('phrase-cloud');
+
+  // Toggle off if already showing
+  if (cloud && cloud.classList.contains('visible')) {
+    cloud.classList.remove('visible');
+    setTimeout(() => cloud.remove(), 300);
+    return;
   }
-  if (echo2 && echoes[1]) {
-    echo2.innerHTML = `${echoes[1].text} <span class="lang">${echoes[1].lang}</span>`;
+
+  // Create cloud container
+  if (!cloud) {
+    cloud = document.createElement('div');
+    cloud.id = 'phrase-cloud';
+    cloud.className = 'phrase-cloud';
+    panel.appendChild(cloud);
   }
+
+  // Get all phrases for this region in the tapped language
+  const useLang = languageMode === 'multi' ? lang : languageMode;
+  const allPhrases = (phraseDB[regionName] || phraseDB.default)[useLang] || [];
+
+  cloud.innerHTML = '';
+  allPhrases.forEach((phrase, i) => {
+    const item = document.createElement('span');
+    item.className = 'phrase-cloud-item';
+    item.textContent = phrase;
+    item.style.animationDelay = `${i * 0.05}s`;
+    cloud.appendChild(item);
+  });
+
+  // Show with animation
+  requestAnimationFrame(() => cloud.classList.add('visible'));
+
+  // Close on outside tap
+  const closeCloud = (e) => {
+    if (!cloud.contains(e.target)) {
+      cloud.classList.remove('visible');
+      setTimeout(() => cloud.remove(), 300);
+      document.removeEventListener('click', closeCloud);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeCloud), 100);
 }
 
 function toggleSuggestion() {
@@ -1827,6 +2065,7 @@ function validateApiKey(key) {
 document.getElementById('api-key').value = getApiKey();
 document.getElementById('model-select').value = getModel();
 validateApiKey(getApiKey());
+updateLanguageSettingsUI();
 
 // =========================================================================
 // LLM TRANSFORMATION with Intent-Based Context Routing
@@ -2620,28 +2859,56 @@ function drawGrid(cx, cy, r, breath) {
 }
 
 function drawTrail(cx, cy, r) {
-  if (state.trail.length < 2) return;
+  if (state.trail.length < 3) return;
 
+  const scale = r * 0.88;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  // Draw glowing trail
+  // Helper: Catmull-Rom to Bezier control points
+  const catmullRomToBezier = (p0, p1, p2, p3, tension = 0.5) => {
+    const d1 = Math.sqrt((p1.x - p0.x) ** 2 + (p1.y - p0.y) ** 2);
+    const d2 = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+    const d3 = Math.sqrt((p3.x - p2.x) ** 2 + (p3.y - p2.y) ** 2);
+
+    const d1a = Math.pow(d1, tension);
+    const d2a = Math.pow(d2, tension);
+    const d3a = Math.pow(d3, tension);
+
+    return {
+      cp1x: p1.x + (d1a * (p2.x - p0.x) - d2a * (p1.x - p0.x)) / (3 * (d1a + d2a)) || p1.x,
+      cp1y: p1.y + (d1a * (p2.y - p0.y) - d2a * (p1.y - p0.y)) / (3 * (d1a + d2a)) || p1.y,
+      cp2x: p2.x - (d3a * (p3.x - p1.x) - d2a * (p2.x - p1.x)) / (3 * (d2a + d3a)) || p2.x,
+      cp2y: p2.y - (d3a * (p3.y - p1.y) - d2a * (p2.y - p1.y)) / (3 * (d2a + d3a)) || p2.y
+    };
+  };
+
+  // Convert trail to screen coords
+  const pts = state.trail.map(p => ({
+    x: cx + p.x * scale,
+    y: cy + p.y * scale
+  }));
+
+  // Draw glowing trail with smooth curves
   for (let pass = 0; pass < 2; pass++) {
     ctx.beginPath();
-    ctx.moveTo(cx + state.trail[0].x * r * 0.88, cy + state.trail[0].y * r * 0.88);
+    ctx.moveTo(pts[0].x, pts[0].y);
 
-    for (let i = 1; i < state.trail.length; i++) {
-      const p = state.trail[i];
-      const progress = i / state.trail.length;
-      const alpha = ease.outExpo(progress) * (pass === 0 ? 0.15 : 0.4);
+    // Draw smooth curve through points using Catmull-Rom splines
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(pts.length - 1, i + 2)];
 
-      ctx.lineTo(cx + p.x * r * 0.88, cy + p.y * r * 0.88);
+      const { cp1x, cp1y, cp2x, cp2y } = catmullRomToBezier(p0, p1, p2, p3);
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
     }
 
     ctx.strokeStyle = pass === 0
-      ? `rgba(168, 124, 232, 0.2)`
-      : `rgba(180, 160, 220, 0.5)`;
-    ctx.lineWidth = pass === 0 ? 8 : 2;
+      ? 'rgba(168, 124, 232, 0.15)'
+      : 'rgba(180, 160, 220, 0.4)';
+    ctx.lineWidth = pass === 0 ? 6 : 1.5;
     ctx.stroke();
   }
 }
