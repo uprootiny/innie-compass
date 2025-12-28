@@ -1083,13 +1083,13 @@ const CONFIG = Object.freeze({
   DEPTH_LEVELS: 5,                 // Number of depth levels to visit for glyphs
   TIERS_FOR_AWAKENING: 4,          // Tiers needed for full awakening
 
-  // Animation timing
-  UNLOCK_ANIMATION_MS: 2000,
-  PROGRESSION_CHECK_INTERVAL_MS: 500,
-  SALIENCE_FADE_SPEED: 0.02,
-  TRAIL_MAX_LENGTH: 80,
-  TRAIL_CLEANUP_DELAY_MS: 2000,
-  EVENT_THROTTLE_MS: 120,
+  // Animation timing - tuned for 60fps human perception
+  UNLOCK_ANIMATION_MS: 1500,       // Reduced for snappier feel
+  PROGRESSION_CHECK_INTERVAL_MS: 250, // More responsive progression updates
+  SALIENCE_FADE_SPEED: 0.04,       // Faster salience fade-in
+  TRAIL_MAX_LENGTH: 60,            // Shorter trail, less memory
+  TRAIL_CLEANUP_DELAY_MS: 1500,    // Faster cleanup
+  EVENT_THROTTLE_MS: 80,           // More responsive event logging
 
   // Visual parameters
   CANVAS_PADDING: 16,
@@ -1099,6 +1099,10 @@ const CONFIG = Object.freeze({
 
   // Physics bounds
   MAX_FRAME_DT: 2,                 // Cap delta time for stability
+
+  // LLM Transformation
+  TRANSFORM_TIMEOUT_MS: 120000,    // 2 minute timeout for transformation
+  TRANSFORM_MIN_OUTPUT_KB: 10,     // Minimum expected output size
 });
 
 // =========================================================================
@@ -1870,8 +1874,126 @@ const BASE_PROMPT = `You are evolving "Innie Compass", a contemplative single-fi
 Canvas-based navigation: X (Reflection-Expression), Y (Grounding-Expansion), Z (Depth via scroll).
 Regions with prompts. Physics-based smooth movement with trails.
 
-RESPOND WITH ONLY complete HTML starting with <!DOCTYPE html>
-No markdown, no explanation. Honor the user's vision.`;
+CRITICAL REQUIREMENTS:
+1. RESPOND WITH ONLY complete HTML starting with <!DOCTYPE html>
+2. No markdown code blocks, no explanation text
+3. PRESERVE these essential elements (transformation fails without them):
+   - <canvas id="compass-canvas">
+   - <div class="compass-container">
+   - <div id="state-panel">
+   - <div id="reflection-panel">
+4. Keep all JavaScript inside a single <script> tag
+5. Ensure animate() function exists and calls requestAnimationFrame
+6. Honor the user's vision while maintaining app functionality`;
+
+// =========================================================================
+// TRANSFORMATION VALIDATION & ROLLBACK SYSTEM
+// =========================================================================
+
+// Rollback state for failed transformations
+let transformRollbackHtml = null;
+
+// Essential elements that must exist in valid HTML
+const ESSENTIAL_SELECTORS = [
+  '#compass-canvas',
+  '.compass-container',
+  '#state-panel',
+  '#reflection-panel'
+];
+
+// Essential code patterns
+const ESSENTIAL_CODE_PATTERNS = [
+  /function\s+animate\s*\(/,
+  /requestAnimationFrame/,
+  /getContext\s*\(\s*['"]2d['"]\s*\)/
+];
+
+/**
+ * Validate generated HTML before applying
+ * Returns { valid: boolean, errors: string[] }
+ */
+function validateGeneratedHtml(html) {
+  const errors = [];
+
+  // Basic structure checks
+  if (!html.startsWith('<!DOCTYPE') && !html.toLowerCase().startsWith('<html')) {
+    errors.push('Missing DOCTYPE or HTML tag');
+  }
+
+  // Check for essential elements
+  for (const selector of ESSENTIAL_SELECTORS) {
+    const idMatch = selector.match(/#([\w-]+)/);
+    const classMatch = selector.match(/\.([\w-]+)/);
+
+    if (idMatch && !html.includes(`id="${idMatch[1]}"`) && !html.includes(`id='${idMatch[1]}'`)) {
+      errors.push(`Missing element: ${selector}`);
+    }
+    if (classMatch && !html.includes(`class="${classMatch[1]}"`) &&
+        !html.includes(`class='${classMatch[1]}'`) &&
+        !html.includes(`"${classMatch[1]} `) &&
+        !html.includes(` ${classMatch[1]}"`)) {
+      errors.push(`Missing element: ${selector}`);
+    }
+  }
+
+  // Check for essential code patterns
+  for (const pattern of ESSENTIAL_CODE_PATTERNS) {
+    if (!pattern.test(html)) {
+      errors.push(`Missing code pattern: ${pattern.source.slice(0, 30)}...`);
+    }
+  }
+
+  // Check for script tag
+  if (!/<script[\s>]/.test(html)) {
+    errors.push('Missing <script> tag');
+  }
+
+  // Check balanced tags (basic)
+  const openScripts = (html.match(/<script/gi) || []).length;
+  const closeScripts = (html.match(/<\/script>/gi) || []).length;
+  if (openScripts !== closeScripts) {
+    errors.push('Unbalanced <script> tags');
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Try to parse and validate JavaScript in the HTML
+ * Returns { valid: boolean, error: string | null }
+ */
+function validateEmbeddedJs(html) {
+  const scriptMatch = html.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+  if (!scriptMatch) return { valid: false, error: 'No script content found' };
+
+  try {
+    // Use Function constructor to check syntax (doesn't execute)
+    new Function(scriptMatch[1]);
+    return { valid: true, error: null };
+  } catch (e) {
+    return { valid: false, error: `JS Syntax Error: ${e.message}` };
+  }
+}
+
+/**
+ * Save current state for potential rollback
+ */
+function saveRollbackState() {
+  transformRollbackHtml = document.documentElement.outerHTML;
+}
+
+/**
+ * Restore from rollback state
+ */
+function restoreFromRollback() {
+  if (transformRollbackHtml) {
+    document.open();
+    document.write(transformRollbackHtml);
+    document.close();
+    return true;
+  }
+  return false;
+}
 
 function detectIntent(query) {
   const lower = query.toLowerCase();
@@ -1910,6 +2032,9 @@ async function transformSpace() {
   overlay.classList.add('active');
   btn.disabled = true;
 
+  // Save rollback state BEFORE transformation
+  saveRollbackState();
+
   const detected = detectIntent(suggestion);
   status.textContent = detected
     ? `Analyzing ${detected.config.focus}...`
@@ -1920,9 +2045,23 @@ async function transformSpace() {
     const currentHtml = document.documentElement.outerHTML;
     const systemPrompt = buildSystemPrompt(suggestion);
 
-    status.textContent = 'Evolving...';
+    // Compress trace to reduce tokens
+    const compactTrace = {
+      regions: traceSummary.regionsVisited || [],
+      depth: { min: traceSummary.depthRange?.[0], max: traceSummary.depthRange?.[1] },
+      events: traceSummary.eventCount || 0,
+      duration: traceSummary.duration || 0
+    };
 
+    status.textContent = 'Connecting...';
+
+    // Timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CONFIG.TRANSFORM_TIMEOUT_MS);
+
+    // Use streaming for better UX
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      signal: controller.signal,
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -1932,26 +2071,119 @@ async function transformSpace() {
       },
       body: JSON.stringify({
         model: getModel(),
+        stream: true,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `HTML:\n${currentHtml}\n\nTRACE:\n${JSON.stringify(traceSummary)}\n\nREQUEST: ${suggestion}` }
+          { role: 'user', content: `CURRENT HTML:\n${currentHtml}\n\nSESSION CONTEXT:\n${JSON.stringify(compactTrace)}\n\nUSER REQUEST: ${suggestion}` }
         ],
-        max_tokens: 16000,
-        temperature: 0.7
+        max_tokens: 32000,
+        temperature: 0.5  // Lower temperature for more reliable output
       })
     });
 
-    if (!response.ok) throw new Error((await response.json()).error?.message || 'API failed');
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `API error: ${response.status}`);
+    }
 
-    let html = (await response.json()).choices[0].message.content.trim();
-    if (html.startsWith('```')) html = html.replace(/^```\w*\n?/, '').replace(/```$/, '').trim();
-    if (!html.startsWith('<!DOCTYPE') && !html.startsWith('<html')) throw new Error('Invalid HTML');
+    // Stream reading
+    status.textContent = 'Generating...';
+    let html = '';
+    let charCount = 0;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-    status.textContent = 'Transforming...';
-    document.open(); document.write(html); document.close();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content || '';
+            html += content;
+            charCount += content.length;
+
+            // Update progress
+            if (charCount % 500 < 50) {
+              status.textContent = `Generating... ${Math.round(charCount / 1000)}k`;
+            }
+          } catch (e) { /* ignore parse errors in stream */ }
+        }
+      }
+    }
+
+    // Clear timeout
+    clearTimeout(timeoutId);
+
+    // Strip markdown code fences if present
+    if (html.startsWith('```')) {
+      html = html.replace(/^```\w*\n?/, '').replace(/```\s*$/, '').trim();
+    }
+
+    // Check minimum output size
+    if (html.length < CONFIG.TRANSFORM_MIN_OUTPUT_KB * 1024) {
+      throw new Error(`Output too small (${Math.round(html.length/1024)}KB). Generation may have failed.`);
+    }
+
+    status.textContent = 'Validating...';
+
+    // Validate HTML structure
+    const structureCheck = validateGeneratedHtml(html);
+    if (!structureCheck.valid) {
+      console.error('Structure validation failed:', structureCheck.errors);
+      throw new Error(`Invalid structure: ${structureCheck.errors.join(', ')}`);
+    }
+
+    // Validate JavaScript syntax
+    const jsCheck = validateEmbeddedJs(html);
+    if (!jsCheck.valid) {
+      console.error('JS validation failed:', jsCheck.error);
+      throw new Error(jsCheck.error);
+    }
+
+    status.textContent = 'Applying transformation...';
+
+    // Apply the transformation
+    document.open();
+    document.write(html);
+    document.close();
+
+    // Clear rollback state on success (new page will have its own state)
+    transformRollbackHtml = null;
+
   } catch (e) {
-    console.error(e);
-    alert('Failed: ' + e.message);
+    console.error('Transform failed:', e);
+
+    // Clear timeout if still pending
+    if (typeof timeoutId !== 'undefined') clearTimeout(timeoutId);
+
+    // Determine error type for better UX
+    let errorMsg = e.message;
+    if (e.name === 'AbortError') {
+      errorMsg = 'Transformation timed out. Try a simpler request.';
+    } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+      errorMsg = 'Network error. Check your connection.';
+    }
+
+    // Offer rollback if we have a saved state
+    if (transformRollbackHtml) {
+      const shouldRollback = confirm(`Transformation failed: ${errorMsg}\n\nRestore previous state?`);
+      if (shouldRollback) {
+        restoreFromRollback();
+        return;
+      }
+    } else {
+      alert('Transform failed: ' + errorMsg);
+    }
+
     overlay.classList.remove('active');
     btn.disabled = false;
   }
