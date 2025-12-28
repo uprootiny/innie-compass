@@ -1,0 +1,2946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Innie Compass</title>
+  <style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-abyss: #06060a;
+  --bg-deep: #0a0a10;
+  --bg-mid: #101018;
+  --bg-surface: #181822;
+  --bg-elevated: #20202c;
+  --text-bright: #eaeaf4;
+  --text-soft: #8888a0;
+  --text-dim: #585870;
+  --text-ghost: #383850;
+  --warmth: #e8a87c;
+  --warmth-glow: rgba(232, 168, 124, 0.3);
+  --coolness: #7ca8e8;
+  --coolness-glow: rgba(124, 168, 232, 0.3);
+  --vitality: #7ce8a8;
+  --stillness: #a87ce8;
+  --accent: #9878d8;
+  --accent-glow: rgba(152, 120, 216, 0.4);
+  --border: #242438;
+  --border-subtle: #1a1a28;
+  --border-glow: #3a3a58;
+  --glow-soft: rgba(152, 120, 216, 0.12);
+  --glow-medium: rgba(152, 120, 216, 0.25);
+  --glow-strong: rgba(152, 120, 216, 0.5);
+
+  /* Layered shadows for depth */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.25);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.5), 0 8px 16px rgba(0,0,0,0.3);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.1);
+  --shadow-glow: 0 0 20px var(--glow-soft), 0 0 40px var(--glow-soft);
+
+  /* Explicit easing curves */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-out-back: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+  --spring-gentle: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --spring-bouncy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  background: var(--bg-abyss);
+  color: var(--text-bright);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Subtle noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.015;
+  pointer-events: none;
+  z-index: 10000;
+  mix-blend-mode: overlay;
+}
+
+/* Parallax ambient light layer */
+body::after {
+  content: '';
+  position: fixed;
+  inset: -50%;
+  background:
+    radial-gradient(ellipse 40% 30% at 20% 20%, var(--coolness-glow) 0%, transparent 60%),
+    radial-gradient(ellipse 35% 25% at 80% 75%, var(--warmth-glow) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, var(--accent-glow) 0%, transparent 70%);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: -1;
+  animation: ambientShift 30s ease-in-out infinite alternate;
+}
+
+@keyframes ambientShift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(2%, 3%) scale(1.02); }
+  100% { transform: translate(-2%, -2%) scale(0.98); }
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Header */
+header {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 100%);
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-medium);
+  z-index: 100;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--text-bright) 0%, var(--text-soft) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 10px;
+  color: var(--text-ghost);
+  margin-top: 2px;
+  font-style: italic;
+  letter-spacing: 1px;
+}
+
+/* Settings toggle */
+.settings-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s var(--ease-out-expo);
+  box-shadow: var(--shadow-subtle), var(--shadow-inset);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-toggle:hover, .settings-toggle:active {
+  border-color: var(--accent);
+  color: var(--text-bright);
+  box-shadow: var(--shadow-medium), 0 0 20px var(--glow-soft);
+  transform: translateY(-50%) scale(1.05);
+}
+
+/* Settings panel */
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(320px, 85vw);
+  height: 100%;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border);
+  padding: 20px 16px;
+  transform: translateX(100%);
+  transition: transform 0.4s var(--ease-out-expo);
+  z-index: 2000;
+  overflow-y: auto;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+  -webkit-overflow-scrolling: touch;
+}
+
+.settings-panel.open {
+  transform: translateX(0);
+}
+
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease-in-out-soft);
+  z-index: 1999;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.settings-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.settings-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s var(--ease-out-expo);
+}
+
+.settings-close:hover {
+  color: var(--text-bright);
+  border-color: var(--text-dim);
+}
+
+.settings-section {
+  margin-bottom: 28px;
+}
+
+.settings-section h3 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-ghost);
+  margin-bottom: 12px;
+  font-weight: 400;
+}
+
+.settings-section input[type="password"],
+.settings-section input[type="text"],
+.settings-section select {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-bright);
+  font-size: 13px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  transition: all 0.2s var(--ease-out-expo);
+  box-shadow: var(--shadow-inset);
+}
+
+.settings-section input:focus,
+.settings-section select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-inset), 0 0 0 3px var(--glow-soft);
+}
+
+.api-status {
+  font-size: 11px;
+  margin-top: 8px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.api-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+.api-status.valid { color: var(--vitality); }
+.api-status.valid::before { background: var(--vitality); box-shadow: 0 0 8px var(--vitality); }
+.api-status.invalid { color: #e87c7c; }
+.api-status.invalid::before { background: #e87c7c; }
+
+/* Main compass area */
+.compass-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(30, 25, 40, 0.8) 0%, transparent 60%),
+    radial-gradient(ellipse at center, var(--bg-mid) 0%, var(--bg-deep) 50%, var(--bg-abyss) 100%);
+  overflow: hidden;
+}
+
+/* Ambient glow layers */
+.compass-container::before {
+  content: '';
+  position: absolute;
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(circle at 30% 30%, rgba(124, 168, 232, 0.03) 0%, transparent 50%),
+              radial-gradient(circle at 70% 70%, rgba(232, 168, 124, 0.03) 0%, transparent 50%);
+  animation: ambientDrift 20s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes ambientDrift {
+  0% { transform: translate(-5%, -5%) rotate(0deg); }
+  100% { transform: translate(5%, 5%) rotate(10deg); }
+}
+
+#compass-canvas {
+  touch-action: none;
+  filter: drop-shadow(0 0 40px rgba(0,0,0,0.3));
+}
+
+/* State panel - salience-based reveal - initially dormant */
+.state-panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: linear-gradient(135deg, rgba(28, 28, 40, 0) 0%, rgba(20, 20, 30, 0) 100%);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0;
+  min-width: 0;
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  box-shadow: none;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.96);
+  transition: all 0.7s var(--ease-out-expo);
+  pointer-events: none;
+}
+
+.state-panel.awakened {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  padding: 10px 14px;
+  min-width: 110px;
+  background: linear-gradient(135deg, rgba(28, 28, 40, 0.85) 0%, rgba(20, 20, 30, 0.85) 100%);
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-subtle);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.state-title {
+  display: none;
+}
+
+.state-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  height: 0;
+  opacity: 0;
+  margin: 0;
+  overflow: hidden;
+  transition: all 0.5s var(--ease-out-expo);
+}
+
+.state-item.salient {
+  height: 18px;
+  opacity: 1;
+  margin-bottom: 2px;
+}
+
+.state-label {
+  color: var(--text-ghost);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: all 0.5s var(--ease-out-expo) 0.1s;
+}
+
+.state-item.salient .state-label {
+  color: var(--text-dim);
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.state-value {
+  font-family: 'SF Mono', monospace;
+  color: var(--text-soft);
+  font-size: 10px;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: all 0.5s var(--ease-out-expo) 0.15s;
+}
+
+.state-item.salient .state-value {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Journey log - subtle woven thread in top right */
+.journey-log {
+  position: fixed;
+  top: 58px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 1s var(--ease-out-expo);
+}
+
+.journey-log.visible {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.journey-event-count {
+  font-size: 8px;
+  font-family: 'SF Mono', monospace;
+  letter-spacing: 0.3px;
+  color: var(--text-ghost);
+  transition: color 0.6s var(--ease-out-expo);
+}
+
+.journey-event-count .count {
+  transition: color 0.4s var(--ease-out-expo);
+}
+
+.journey-thread-wrap {
+  width: 24px;
+  height: 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+.journey-thread {
+  position: absolute;
+  bottom: 0;
+  right: 4px;
+  width: 2px;
+  height: 0;
+  border-radius: 1px;
+  background: linear-gradient(0deg, transparent 0%, var(--accent) 30%, var(--accent) 100%);
+  opacity: 0;
+  transition: height 1.5s var(--ease-out-expo), opacity 0.8s var(--ease-out-expo);
+}
+
+.journey-thread.growing {
+  opacity: 0.4;
+}
+
+.journey-pacing {
+  font-size: 6px;
+  font-family: 'SF Mono', monospace;
+  color: var(--text-ghost);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.6s var(--ease-out-expo);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.journey-pacing.visible {
+  opacity: 0.35;
+  transform: scale(1);
+}
+
+/* Reflection panel - expandable with multilingual phrases */
+.reflection-panel {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  background: linear-gradient(135deg, rgba(28, 28, 40, 0.97) 0%, rgba(20, 20, 30, 0.97) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  text-align: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-strong), var(--shadow-inset);
+  max-width: 420px;
+  margin: 0 auto;
+  cursor: pointer;
+  transition: all 0.5s var(--ease-out-expo);
+}
+
+.reflection-panel.expanded {
+  padding: 20px 24px 24px;
+}
+
+.reflection-prompt {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-bright);
+  font-style: italic;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  transition: all 0.4s var(--ease-out-expo);
+}
+
+.reflection-meta {
+  font-size: 10px;
+  color: var(--text-ghost);
+  margin-top: 10px;
+  letter-spacing: 0.5px;
+  transition: all 0.3s var(--ease-out-expo);
+}
+
+.reflection-echoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.5s var(--ease-out-expo);
+}
+
+.reflection-panel.expanded .reflection-echoes {
+  margin-top: 14px;
+  max-height: 120px;
+  opacity: 1;
+}
+
+.reflection-echo {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all 0.4s var(--ease-out-expo);
+}
+
+.reflection-panel.expanded .reflection-echo {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reflection-echo:nth-child(1) { transition-delay: 0.1s; }
+.reflection-echo:nth-child(2) { transition-delay: 0.2s; }
+
+.reflection-echo .lang {
+  font-size: 8px;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-left: 6px;
+}
+
+/* Axis labels */
+.axis-label {
+  position: absolute;
+  font-size: 9px;
+  color: var(--text-ghost);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+.axis-top { top: 8px; left: 50%; transform: translateX(-50%); }
+.axis-bottom { bottom: 100px; left: 50%; transform: translateX(-50%); }
+.axis-left { left: 8px; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: center; }
+.axis-right { right: 8px; top: 50%; transform: translateY(-50%) rotate(90deg); transform-origin: center; }
+
+/* Footer */
+footer {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  background: linear-gradient(0deg, var(--bg-mid) 0%, var(--bg-deep) 100%);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+  z-index: 100;
+}
+
+.footer-stat {
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 8px;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-size: 13px;
+  font-family: 'SF Mono', monospace;
+  margin-top: 2px;
+  color: var(--text-soft);
+}
+
+/* Transform button - expands into input */
+.transform-toggle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -18px;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-mid) 100%);
+  border: 1px solid var(--border);
+  color: var(--text-ghost);
+  padding: 6px 14px;
+  border-radius: 0 0 12px 12px;
+  cursor: pointer;
+  font-size: 9px;
+  font-family: Georgia, serif;
+  z-index: 101;
+  transition: all 0.4s var(--ease-out-expo);
+  letter-spacing: 1px;
+  text-transform: lowercase;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.transform-toggle:hover, .transform-toggle:active {
+  border-color: var(--accent);
+  color: var(--text-soft);
+  padding-bottom: 10px;
+}
+
+.transform-toggle.expanded {
+  width: calc(100% - 32px);
+  max-width: 400px;
+  padding: 0;
+  bottom: -48px;
+  border-radius: 12px;
+  background: var(--bg-surface);
+}
+
+/* Inline transform input - expands from header button */
+.transform-inline {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: top center;
+  bottom: -56px;
+  width: calc(100% - 32px);
+  max-width: 420px;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-mid) 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0;
+  opacity: 0;
+  z-index: 102;
+  transition: all 0.4s var(--ease-out-expo);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.transform-inline.expanded {
+  transform: translateX(-50%) scaleY(1);
+  padding: 10px 12px;
+  opacity: 1;
+}
+
+.transform-inline-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.transform-inline-input {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-bright);
+  font-size: 13px;
+  font-family: Georgia, serif;
+  transition: all 0.2s var(--ease-out-expo);
+}
+
+.transform-inline-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.transform-inline-input::placeholder {
+  color: var(--text-ghost);
+  font-style: italic;
+}
+
+.transform-inline-btn {
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--coolness) 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: Georgia, serif;
+  transition: all 0.3s var(--ease-out-expo);
+  white-space: nowrap;
+}
+
+.transform-inline-btn:hover {
+  transform: scale(1.02);
+}
+
+.transform-inline-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.transform-inline-close {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.transform-inline-close:hover {
+  border-color: var(--text-dim);
+  color: var(--text-soft);
+}
+
+/* Suggestion panel - kept for fallback */
+.suggestion-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  transform: translateY(100%);
+  transition: transform 0.4s var(--ease-out-expo);
+  z-index: 1500;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+  border-radius: 20px 20px 0 0;
+  display: none;
+}
+
+.suggestion-panel.open {
+  transform: translateY(0);
+}
+
+.suggestion-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 0 auto 14px;
+}
+
+.suggestion-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.suggestion-input {
+  flex: 1;
+  padding: 14px 16px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-bright);
+  font-size: 14px;
+  font-family: Georgia, serif;
+  resize: none;
+  min-height: 56px;
+  max-height: 120px;
+  line-height: 1.5;
+  transition: all 0.2s var(--ease-out-expo);
+  box-shadow: var(--shadow-inset);
+}
+
+.suggestion-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-inset), 0 0 0 3px var(--glow-soft);
+}
+
+.suggestion-input::placeholder {
+  color: var(--text-ghost);
+  font-style: italic;
+}
+
+.transform-btn {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--coolness) 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: Georgia, serif;
+  transition: all 0.3s var(--ease-out-expo);
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(168, 124, 232, 0.3);
+  letter-spacing: 0.5px;
+}
+
+.transform-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(168, 124, 232, 0.4);
+}
+
+.transform-btn:active {
+  transform: translateY(0);
+}
+
+.transform-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Journey log minimap canvas */
+.journey-thread-wrap canvas {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 60px;
+  opacity: 0.5;
+}
+
+/* Transform overlay */
+.transform-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 8, 12, 0.97);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 3000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s var(--ease-out-expo);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.transform-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.transform-status {
+  font-size: 14px;
+  color: var(--text-soft);
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+}
+
+.transform-spinner {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  box-shadow: 0 0 20px var(--glow-soft);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile optimizations */
+@media (max-width: 600px) {
+  header { padding: 10px 12px; }
+  h1 { font-size: 16px; letter-spacing: 2px; }
+  .state-panel { display: none; }
+  .axis-label { font-size: 8px; letter-spacing: 1.5px; }
+  .axis-left, .axis-right { display: none; }
+  .reflection-panel {
+    padding: 14px 16px;
+    border-radius: 14px;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+  }
+  .reflection-prompt { font-size: 14px; }
+  footer { padding: 8px 12px; gap: 20px; }
+  .stat-label { font-size: 7px; }
+  .stat-value { font-size: 12px; }
+  .transform-toggle { font-size: 8px; padding: 5px 10px; }
+  .suggestion-panel { padding: 14px 12px; }
+  .journey-log { top: 52px; right: 6px; }
+  .journey-thread-wrap { height: 40px; }
+  .journey-pacing { display: none; }
+  .settings-toggle { width: 32px; height: 32px; right: 10px; }
+}
+
+@media (max-height: 600px) {
+  .reflection-panel { display: none; }
+  .axis-top, .axis-bottom { display: none; }
+}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Innie Compass</h1>
+      <div class="subtitle">self-evolving contemplative space</div>
+      <button class="transform-toggle" id="transform-toggle" onclick="toggleTransformInline()" title="Transform">transform</button>
+      <div class="transform-inline" id="transform-inline">
+        <div class="transform-inline-row">
+          <input type="text" class="transform-inline-input" id="transform-inline-input"
+                 placeholder="How should this space evolve?"
+                 onkeydown="if(event.key==='Enter')transformSpaceInline()">
+          <button class="transform-inline-btn" id="transform-inline-btn" onclick="transformSpaceInline()">Evolve</button>
+          <button class="transform-inline-close" onclick="closeTransformInline()">&times;</button>
+        </div>
+      </div>
+      <button class="settings-toggle" onclick="toggleSettings()" title="Settings" aria-label="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="compass-container">
+      <canvas id="compass-canvas"></canvas>
+
+      <div class="state-panel" id="state-panel">
+        <div class="state-title">State</div>
+        <div class="state-item">
+          <span class="state-label">Energy</span>
+          <span class="state-value" id="energy">Balanced</span>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Focus</span>
+          <span class="state-value" id="focus">Centered</span>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Mood</span>
+          <span class="state-value" id="mood">Neutral</span>
+        </div>
+        <div class="state-item">
+          <span class="state-label">Depth</span>
+          <span class="state-value" id="depth">Surface</span>
+        </div>
+      </div>
+
+      <div class="axis-label axis-top">Grounding</div>
+      <div class="axis-label axis-bottom">Expansion</div>
+      <div class="axis-label axis-left">Reflection</div>
+      <div class="axis-label axis-right">Expression</div>
+
+      <div class="reflection-panel" id="reflection-panel" onclick="toggleReflectionExpand()">
+        <div class="reflection-prompt" id="prompt">Where does your attention rest?</div>
+        <div class="reflection-meta" id="prompt-meta">Move gently to explore</div>
+        <div class="reflection-echoes" id="reflection-echoes">
+          <div class="reflection-echo" id="echo-1"></div>
+          <div class="reflection-echo" id="echo-2"></div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="footer-stat">
+        <div class="stat-label">Stillness</div>
+        <div class="stat-value" id="stillness">0s</div>
+      </div>
+      <div class="footer-stat">
+        <div class="stat-label">Wandering</div>
+        <div class="stat-value" id="wandering">0</div>
+      </div>
+      <div class="footer-stat">
+        <div class="stat-label">Depth</div>
+        <div class="stat-value" id="depth-value">0.50</div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Settings backdrop -->
+  <div class="settings-backdrop" id="settings-backdrop" onclick="toggleSettings()"></div>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel" id="settings-panel">
+    <button class="settings-close" onclick="toggleSettings()" aria-label="Close settings">&times;</button>
+
+    <div class="settings-section">
+      <h3>OpenRouter API</h3>
+      <input type="password" id="api-key" placeholder="sk-or-v1-..."
+             onchange="saveApiKey(this.value)" autocomplete="off">
+      <div class="api-status" id="api-status">No key configured</div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Model</h3>
+      <select id="model-select" onchange="saveModel(this.value)">
+        <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
+        <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+        <option value="openai/gpt-4o">GPT-4o</option>
+        <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash</option>
+        <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
+      </select>
+    </div>
+
+    <div class="settings-section">
+      <h3>Session Trace</h3>
+      <div style="font-size: 11px; color: var(--text-dim); line-height: 1.6;">
+        <div>Events: <span id="trace-count" class="count" style="color: var(--accent); font-family: monospace;">0</span></div>
+        <div>Regions: <span id="regions-visited" style="font-family: monospace;">0</span></div>
+        <div>Duration: <span id="session-duration" style="font-family: monospace;">0s</span></div>
+      </div>
+      <button onclick="clearTrace()" style="margin-top: 14px; padding: 10px 16px;
+        background: var(--bg-deep); border: 1px solid var(--border);
+        color: var(--text-dim); border-radius: 6px; cursor: pointer; font-size: 11px;
+        transition: all 0.2s; width: 100%;">
+        Clear Trace
+      </button>
+    </div>
+  </div>
+
+  <!-- Journey log - subtle woven thread -->
+  <div class="journey-log" id="journey-log">
+    <div class="journey-event-count"><span class="count" id="journey-count">0</span> <span class="label">events</span></div>
+    <div class="journey-thread-wrap">
+      <div class="journey-thread" id="journey-thread"></div>
+      <canvas id="minimap-canvas" width="24" height="60"></canvas>
+    </div>
+    <div class="journey-pacing" id="journey-pacing"></div>
+  </div>
+
+  <!-- Suggestion panel -->
+  <div class="suggestion-panel" id="suggestion-panel">
+    <div class="suggestion-handle"></div>
+    <div class="suggestion-input-row">
+      <textarea class="suggestion-input" id="suggestion-input" rows="2"
+        placeholder="How should this space evolve?"></textarea>
+      <button class="transform-btn" id="transform-btn" onclick="transformSpace()">
+        Transform
+      </button>
+    </div>
+  </div>
+
+  <!-- Transform overlay -->
+  <div class="transform-overlay" id="transform-overlay">
+    <div class="transform-spinner"></div>
+    <div class="transform-status" id="transform-status">Evolving...</div>
+  </div>
+
+  <script>
+// =========================================================================
+// INNIE COMPASS - Polished Self-Evolving Contemplative Space
+// =========================================================================
+
+const canvas = document.getElementById('compass-canvas');
+const ctx = canvas.getContext('2d');
+
+// =========================================================================
+// CONFIGURATION CONSTANTS - Centralized tuning parameters
+// =========================================================================
+
+const CONFIG = Object.freeze({
+  // Progression thresholds
+  CONSTELLATION_THRESHOLD: 5,      // Regions to visit for constellation unlock
+  STILLNESS_THRESHOLD_SEC: 20,     // Seconds of stillness for liminal ring
+  DEPTH_LEVELS: 5,                 // Number of depth levels to visit for glyphs
+  TIERS_FOR_AWAKENING: 4,          // Tiers needed for full awakening
+
+  // Animation timing
+  UNLOCK_ANIMATION_MS: 2000,
+  PROGRESSION_CHECK_INTERVAL_MS: 500,
+  SALIENCE_FADE_SPEED: 0.02,
+  TRAIL_MAX_LENGTH: 80,
+  TRAIL_CLEANUP_DELAY_MS: 2000,
+  EVENT_THROTTLE_MS: 120,
+
+  // Visual parameters
+  CANVAS_PADDING: 16,
+  INDICATOR_BASE_RADIUS: 10,
+  INDICATOR_DEPTH_SCALE: 6,
+  REGION_PROXIMITY_SCALE: 0.88,
+
+  // Physics bounds
+  MAX_FRAME_DT: 2,                 // Cap delta time for stability
+});
+
+// =========================================================================
+// DOM ELEMENT CACHE - Avoid repeated querySelector calls
+// =========================================================================
+
+const elements = {
+  // Lazily populated on first access
+  _cache: new Map(),
+
+  get(id) {
+    if (!this._cache.has(id)) {
+      this._cache.set(id, document.getElementById(id));
+    }
+    return this._cache.get(id);
+  },
+
+  // Clear cache (useful after DOM mutations)
+  clear() {
+    this._cache.clear();
+  }
+};
+
+// =========================================================================
+// UTILITY FUNCTIONS
+// =========================================================================
+
+/** Clamp value between min and max */
+const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+/** Linear interpolation */
+const lerp = (a, b, t) => a + (b - a) * t;
+
+/** Safe division with fallback */
+const safeDivide = (num, denom, fallback = 0) => denom === 0 ? fallback : num / denom;
+
+/** Check if value is a finite number */
+const isFiniteNum = (val) => typeof val === 'number' && Number.isFinite(val);
+
+// Easing functions
+const ease = {
+  outExpo: t => t === 1 ? 1 : 1 - Math.pow(2, -10 * t),
+  outBack: t => { const c1 = 1.70158; const c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+  outElastic: t => t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (2 * Math.PI) / 3) + 1,
+  inOutSoft: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
+  spring: (t, damping = 0.5, freq = 15) => 1 - Math.exp(-damping * t * freq) * Math.cos(t * freq),
+};
+
+// Enhanced physics with nuanced response
+const physics = {
+  vx: 0, vy: 0, vz: 0,    // velocities
+  ax: 0, ay: 0,            // accelerations for smooth starts
+
+  // Tuned coefficients for responsive yet smooth feel
+  friction: 0.94,          // drag - higher = more glide
+  frictionZ: 0.88,         // depth friction
+  springK: 0.12,           // spring constant - responsiveness
+  damping: 0.82,           // oscillation damping
+
+  // Adaptive parameters
+  responsiveness: 0.25,    // how quickly position follows input
+  momentumScale: 0.7,      // velocity retention on release
+  boundarySpring: 0.15,    // bounce-back from edges
+
+  // Touch-specific tuning
+  touchMultiplier: 1.2,    // touch feels slightly more responsive
+  minVelocity: 0.001,      // threshold for stopping
+};
+
+// Main state with enhanced tracking
+const state = {
+  x: 0, y: 0, z: 0.5,
+  targetX: 0, targetY: 0, targetZ: 0.5,
+  smoothX: 0, smoothY: 0, smoothZ: 0.5,
+  prevX: 0, prevY: 0,      // for velocity calculation
+
+  isDragging: false,
+  isTouch: false,          // touch vs mouse
+  lastMoveTime: Date.now(),
+  stillnessStart: Date.now(),
+  wanderCount: 0,
+
+  trail: [],
+  glowIntensity: 0,
+  glowTarget: 0,           // for smooth glow transitions
+  breathPhase: 0,
+  pulsePhase: 0,
+  parallaxX: 0, parallaxY: 0,  // subtle parallax offset
+
+  // Ba-gua rotating rings
+  ringRotations: [0, 0, 0, 0],  // 4 rings, different speeds
+  ringVelocities: [0, 0, 0, 0],
+  lastDragAngle: 0,
+
+  // Performance tracking
+  frameTime: 16.67,
+  lastFrameTime: performance.now(),
+};
+
+// =========================================================================
+// INTERACTION TRACE SYSTEM
+// =========================================================================
+
+const trace = {
+  sessionStart: Date.now(),
+  events: [],
+  regionVisits: new Map(),
+  currentRegion: null,
+  lastEventTime: Date.now(),
+};
+
+function logEvent(type, data = {}) {
+  const now = Date.now();
+  trace.events.push({
+    t: now - trace.sessionStart,
+    type,
+    x: Math.round(state.x * 100) / 100,
+    y: Math.round(state.y * 100) / 100,
+    z: Math.round(state.z * 100) / 100,
+    ...data
+  });
+  if (trace.events.length > 500) trace.events = trace.events.slice(-400);
+  updateTraceDisplay();
+}
+
+function logRegionEnter(regionName) {
+  if (trace.currentRegion === regionName) return;
+  if (trace.currentRegion) logRegionExit(trace.currentRegion);
+
+  trace.currentRegion = regionName;
+  const visit = trace.regionVisits.get(regionName) || { count: 0, totalDuration: 0 };
+  visit.count++;
+  visit.lastEnter = Date.now();
+  trace.regionVisits.set(regionName, visit);
+  logEvent('region_enter', { region: regionName });
+}
+
+function logRegionExit(regionName) {
+  const visit = trace.regionVisits.get(regionName);
+  if (visit?.lastEnter) {
+    visit.totalDuration += Date.now() - visit.lastEnter;
+    visit.lastEnter = null;
+  }
+  if (trace.currentRegion === regionName) {
+    trace.currentRegion = null;
+    logEvent('region_exit', { region: regionName });
+  }
+}
+
+// Journey/pacing state
+const journey = {
+  recentVelocities: [],
+  avgVelocity: 0,
+  lastPacing: 'still',
+  semanticColor: null,
+  awakened: false,
+  lastUpdateTime: 0,
+};
+
+function updateTraceDisplay() {
+  // Use cached element references
+  const countEl = elements.get('trace-count');
+  const journeyCountEl = elements.get('journey-count');
+  const regionsEl = elements.get('regions-visited');
+  const durationEl = elements.get('session-duration');
+  const journeyLogEl = elements.get('journey-log');
+  const journeyThreadEl = elements.get('journey-thread');
+  const journeyPacingEl = elements.get('journey-pacing');
+
+  const eventCount = trace.events.length;
+  const now = Date.now();
+
+  // Batch DOM updates - only update if values changed
+  if (countEl && countEl._lastValue !== eventCount) {
+    countEl.textContent = eventCount;
+    countEl._lastValue = eventCount;
+  }
+  if (journeyCountEl && journeyCountEl._lastValue !== eventCount) {
+    journeyCountEl.textContent = eventCount;
+    journeyCountEl._lastValue = eventCount;
+  }
+
+  const regionCount = trace.regionVisits.size;
+  if (regionsEl && regionsEl._lastValue !== regionCount) {
+    regionsEl.textContent = regionCount;
+    regionsEl._lastValue = regionCount;
+  }
+
+  const durationSec = Math.floor((now - trace.sessionStart) / 1000);
+  if (durationEl && durationEl._lastValue !== durationSec) {
+    durationEl.textContent = durationSec + 's';
+    durationEl._lastValue = durationSec;
+  }
+
+  // Awaken journey log after first few interactions
+  if (eventCount > 3 && journeyLogEl && !journeyLogEl.classList.contains('visible')) {
+    journeyLogEl.classList.add('visible');
+  }
+
+  // Grow the thread based on event count (max 60px)
+  if (journeyThreadEl) {
+    const height = Math.min(60, eventCount * 0.8);
+    const heightStr = height + 'px';
+    if (journeyThreadEl._lastHeight !== heightStr) {
+      journeyThreadEl.style.height = heightStr;
+      journeyThreadEl._lastHeight = heightStr;
+      if (height > 0 && !journeyThreadEl.classList.contains('growing')) {
+        journeyThreadEl.classList.add('growing');
+      }
+    }
+  }
+
+  // Calculate pacing from recent velocities (throttled)
+  if (now - journey.lastUpdateTime > 200) {
+    const velocity = Math.sqrt(physics.vx ** 2 + physics.vy ** 2);
+    journey.recentVelocities.push(velocity);
+    if (journey.recentVelocities.length > 10) journey.recentVelocities.shift();
+
+    // Safe average calculation
+    const sum = journey.recentVelocities.reduce((a, b) => a + b, 0);
+    journey.avgVelocity = safeDivide(sum, journey.recentVelocities.length, 0);
+    journey.lastUpdateTime = now;
+
+    // Determine pacing descriptor
+    let pacing = 'still';
+    if (journey.avgVelocity > 0.08) pacing = 'rushing';
+    else if (journey.avgVelocity > 0.04) pacing = 'flowing';
+    else if (journey.avgVelocity > 0.015) pacing = 'drifting';
+    else if (journey.avgVelocity > 0.003) pacing = 'settling';
+
+    if (pacing !== journey.lastPacing) {
+      journey.lastPacing = pacing;
+      if (journeyPacingEl) {
+        journeyPacingEl.textContent = pacing;
+        journeyPacingEl.classList.toggle('visible', pacing !== 'still');
+      }
+    }
+  }
+
+  // Semantic tinting based on nearest region (only recalc if position changed significantly)
+  const posKey = Math.round(state.smoothX * 100) + ',' + Math.round(state.smoothY * 100);
+  if (journey._lastPosKey !== posKey) {
+    journey._lastPosKey = posKey;
+
+    let nearestRegion = null;
+    let minDist = Infinity;
+    for (const region of regions) {
+      const dx = state.smoothX - region.x;
+      const dy = state.smoothY - region.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < region.r * 3 && dist < minDist) {
+        minDist = dist;
+        nearestRegion = region;
+      }
+    }
+
+    const newColor = nearestRegion ? nearestRegion.color : '';
+    if (journeyCountEl && journey.semanticColor !== newColor) {
+      journeyCountEl.style.color = newColor;
+      journey.semanticColor = newColor || null;
+    }
+  }
+}
+
+function clearTrace() {
+  trace.events = [];
+  trace.regionVisits.clear();
+  trace.currentRegion = null;
+  trace.sessionStart = Date.now();
+  updateTraceDisplay();
+}
+
+function generateTraceSummary() {
+  const regionStats = [...trace.regionVisits.entries()]
+    .map(([name, data]) => ({ name, visits: data.count, duration: Math.round(data.totalDuration / 1000) }))
+    .sort((a, b) => b.duration - a.duration);
+
+  return {
+    sessionDurationSec: Math.round((Date.now() - trace.sessionStart) / 1000),
+    totalEvents: trace.events.length,
+    wanderCount: state.wanderCount,
+    regionsExplored: regionStats,
+    recentMovements: trace.events.filter(e => e.type === 'move' || e.type === 'region_enter').slice(-50),
+    finalPosition: { x: state.x, y: state.y, z: state.z },
+    averageDepth: trace.events.length > 0 ? trace.events.reduce((s, e) => s + (e.z || 0.5), 0) / trace.events.length : 0.5
+  };
+}
+
+// =========================================================================
+// PROGRESSION SYSTEM - Unlockable visual complexity
+// =========================================================================
+
+const progression = {
+  // Tier states
+  tiers: {
+    constellations: false,   // Tier 1: Lines connecting visited regions
+    innerSanctum: false,     // Tier 2: Central sacred zone
+    liminalRing: false,      // Tier 3: Outer boundary zone
+    deepGlyphs: false,       // Tier 4: Ancient symbols
+    fullAwakening: false,    // Tier 5: All tiers unlocked
+  },
+
+  // Unlock conditions - use CONFIG constants
+  conditions: {
+    constellations: () => trace.regionVisits.size >= CONFIG.CONSTELLATION_THRESHOLD,
+    innerSanctum: () => trace.regionVisits.size >= regions.length,
+    liminalRing: () => {
+      const stillness = (Date.now() - state.stillnessStart) / 1000;
+      return stillness >= CONFIG.STILLNESS_THRESHOLD_SEC ||
+             progression.maxStillness >= CONFIG.STILLNESS_THRESHOLD_SEC;
+    },
+    deepGlyphs: () => {
+      // Must have visited all depth levels
+      if (trace.events.length === 0) return false;
+      const depths = new Set(
+        trace.events.map(e => Math.floor(clamp(e.z || 0.5, 0, 0.999) * CONFIG.DEPTH_LEVELS))
+      );
+      return depths.size >= CONFIG.DEPTH_LEVELS;
+    },
+    fullAwakening: () => {
+      const unlockedCount = Object.values(progression.tiers).filter(Boolean).length;
+      return unlockedCount >= CONFIG.TIERS_FOR_AWAKENING;
+    },
+  },
+
+  // Tracking
+  maxStillness: 0,
+  lastCheck: 0,
+  unlockAnimations: [],
+
+  // Visual parameters for unlocked tiers (0-1 alpha values)
+  constellationAlpha: 0,
+  sanctumAlpha: 0,
+  liminalAlpha: 0,
+  glyphAlpha: 0,
+  awakeningPulse: 0,
+};
+
+function checkProgressionUnlocks() {
+  const now = Date.now();
+  if (now - progression.lastCheck < CONFIG.PROGRESSION_CHECK_INTERVAL_MS) return;
+  progression.lastCheck = now;
+
+  // Track max stillness achieved
+  const currentStillness = (now - state.stillnessStart) / 1000;
+  if (isFiniteNum(currentStillness) && currentStillness > progression.maxStillness) {
+    progression.maxStillness = currentStillness;
+  }
+
+  // Check each tier for unlock
+  for (const [tier, condition] of Object.entries(progression.conditions)) {
+    if (!progression.tiers[tier]) {
+      try {
+        if (condition()) {
+          progression.tiers[tier] = true;
+          triggerUnlockAnimation(tier);
+          console.log(`🔓 Unlocked: ${tier}`);
+        }
+      } catch (e) {
+        console.warn(`Progression check failed for ${tier}:`, e);
+      }
+    }
+  }
+}
+
+function triggerUnlockAnimation(tier) {
+  if (typeof tier !== 'string') return;
+  progression.unlockAnimations.push({
+    tier,
+    startTime: Date.now(),
+    duration: CONFIG.UNLOCK_ANIMATION_MS,
+  });
+}
+
+function updateProgressionVisuals(dt) {
+  // Validate dt
+  if (!isFiniteNum(dt) || dt <= 0) dt = 1;
+
+  // Smooth alpha transitions for each tier (fixed operator precedence!)
+  const fadeSpeed = CONFIG.SALIENCE_FADE_SPEED * dt;
+
+  const targetConst = progression.tiers.constellations ? 1 : 0;
+  const targetSanct = progression.tiers.innerSanctum ? 1 : 0;
+  const targetLimin = progression.tiers.liminalRing ? 1 : 0;
+  const targetGlyph = progression.tiers.deepGlyphs ? 1 : 0;
+
+  progression.constellationAlpha = lerp(progression.constellationAlpha, targetConst, fadeSpeed);
+  progression.sanctumAlpha = lerp(progression.sanctumAlpha, targetSanct, fadeSpeed);
+  progression.liminalAlpha = lerp(progression.liminalAlpha, targetLimin, fadeSpeed);
+  progression.glyphAlpha = lerp(progression.glyphAlpha, targetGlyph, fadeSpeed);
+
+  // Clamp to valid range
+  progression.constellationAlpha = clamp(progression.constellationAlpha, 0, 1);
+  progression.sanctumAlpha = clamp(progression.sanctumAlpha, 0, 1);
+  progression.liminalAlpha = clamp(progression.liminalAlpha, 0, 1);
+  progression.glyphAlpha = clamp(progression.glyphAlpha, 0, 1);
+
+  if (progression.tiers.fullAwakening) {
+    progression.awakeningPulse += 0.02 * dt;
+  }
+
+  // Clean up finished animations
+  const now = Date.now();
+  progression.unlockAnimations = progression.unlockAnimations.filter(
+    a => a && (now - a.startTime) < a.duration
+  );
+}
+
+// =========================================================================
+// SALIENCE TRACKING - Reveal state values when they become notable
+// =========================================================================
+
+const salience = {
+  energy: { value: 'Balanced', lastChange: 0, threshold: 2000 },
+  focus: { value: 'Centered', lastChange: 0, threshold: 2000 },
+  mood: { value: 'Exploring', lastChange: 0, threshold: 3000 },
+  depth: { value: 'Surface', lastChange: 0, threshold: 1500 },
+};
+
+function updateSalience(key, newValue) {
+  const s = salience[key];
+  if (!s) return;
+
+  if (s.value !== newValue) {
+    s.value = newValue;
+    s.lastChange = Date.now();
+  }
+
+  const el = document.querySelector(`#${key}`)?.closest('.state-item');
+  if (!el) return;
+
+  const timeSinceChange = Date.now() - s.lastChange;
+  const isSalient = timeSinceChange < s.threshold;
+
+  if (isSalient) {
+    el.classList.add('salient');
+  } else {
+    el.classList.remove('salient');
+  }
+
+  // Awaken state panel if any rubric is salient
+  updateStatePanelAwakening();
+}
+
+function updateStatePanelAwakening() {
+  const panel = document.getElementById('state-panel');
+  if (!panel) return;
+
+  const hasSalient = Object.values(salience).some(s =>
+    Date.now() - s.lastChange < s.threshold
+  );
+
+  if (hasSalient && !panel.classList.contains('awakened')) {
+    panel.classList.add('awakened');
+  } else if (!hasSalient && panel.classList.contains('awakened')) {
+    // Fade out after all rubrics go dormant
+    setTimeout(() => {
+      const stillHasSalient = Object.values(salience).some(s =>
+        Date.now() - s.lastChange < s.threshold
+      );
+      if (!stillHasSalient) {
+        panel.classList.remove('awakened');
+      }
+    }, 500);
+  }
+}
+
+// =========================================================================
+// MINIMAP - Woven thread trace visualization
+// =========================================================================
+
+const minimapCanvas = document.getElementById('minimap-canvas');
+const minimapCtx = minimapCanvas ? minimapCanvas.getContext('2d') : null;
+
+function drawMinimap() {
+  if (!minimapCtx) return;
+
+  // Vertical woven thread visualization (24x60)
+  const w = 24, h = 60;
+  const cx = w / 2, cy = h / 2;
+
+  minimapCtx.clearRect(0, 0, w, h);
+
+  // Draw the woven thread as a vertical trace of Y position over time
+  if (state.trail.length > 1) {
+    minimapCtx.beginPath();
+
+    for (let i = 0; i < state.trail.length; i++) {
+      const p = state.trail[i];
+      const progress = i / state.trail.length;
+      // Map Y position to X offset, time to Y
+      const tx = cx + p.x * 8;
+      const ty = h - (progress * h * 0.9) - 3;
+
+      if (i === 0) {
+        minimapCtx.moveTo(tx, ty);
+      } else {
+        minimapCtx.lineTo(tx, ty);
+      }
+    }
+
+    // Tint by semantic color if available
+    const color = journey.semanticColor || 'rgba(168, 124, 232, 0.5)';
+    minimapCtx.strokeStyle = color;
+    minimapCtx.globalAlpha = 0.6;
+    minimapCtx.lineWidth = 1;
+    minimapCtx.lineCap = 'round';
+    minimapCtx.stroke();
+    minimapCtx.globalAlpha = 1;
+  }
+
+  // Current position dot at top
+  const px = cx + state.smoothX * 8;
+  minimapCtx.beginPath();
+  minimapCtx.arc(px, 4, 2, 0, Math.PI * 2);
+  minimapCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  minimapCtx.fill();
+}
+
+// =========================================================================
+// VISITOR LOGGING
+// =========================================================================
+
+function logVisitor() {
+  const visitorData = {
+    timestamp: new Date().toISOString(),
+    viewport: {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      devicePixelRatio: window.devicePixelRatio || 1
+    },
+    userAgent: navigator.userAgent,
+    language: navigator.language,
+    referrer: document.referrer || 'direct',
+    url: location.href
+  };
+
+  console.log('Visitor:', visitorData);
+
+  // Store locally for potential later sync
+  try {
+    const visits = JSON.parse(localStorage.getItem('innie-compass-visits') || '[]');
+    visits.push(visitorData);
+    if (visits.length > 50) visits.shift();
+    localStorage.setItem('innie-compass-visits', JSON.stringify(visits));
+  } catch (e) { /* localStorage unavailable */ }
+}
+
+logVisitor();
+
+// =========================================================================
+// SETTINGS & API
+// =========================================================================
+
+function toggleSettings() {
+  const panel = document.getElementById('settings-panel');
+  const backdrop = document.getElementById('settings-backdrop');
+  panel.classList.toggle('open');
+  backdrop.classList.toggle('open');
+}
+
+// Reflection panel expansion with multilingual echoes
+const reflectionEchoes = {
+  // Multilingual contemplative phrases paired with regions
+  Presence: [
+    { text: 'Sei hier. Atme.', lang: 'de' },
+    { text: 'הנה אני', lang: 'he' }
+  ],
+  Grounding: [
+    { text: 'Verwurzelt im Augenblick', lang: 'de' },
+    { text: 'שורשים עמוקים', lang: 'he' }
+  ],
+  Expansion: [
+    { text: 'Was will wachsen?', lang: 'de' },
+    { text: 'להתפשט', lang: 'he' }
+  ],
+  Reflection: [
+    { text: 'Blick nach innen', lang: 'de' },
+    { text: 'מבט פנימה', lang: 'he' }
+  ],
+  Expression: [
+    { text: 'Was will gesagt werden?', lang: 'de' },
+    { text: 'לבטא', lang: 'he' }
+  ],
+  Memory: [
+    { text: 'Was lebt noch in dir?', lang: 'de' },
+    { text: 'זיכרון', lang: 'he' }
+  ],
+  Practice: [
+    { text: 'Übung macht den Meister', lang: 'de' },
+    { text: 'תרגול', lang: 'he' }
+  ],
+  Vision: [
+    { text: 'Was will werden?', lang: 'de' },
+    { text: 'חזון', lang: 'he' }
+  ],
+  Connection: [
+    { text: 'Wer kommt dir in den Sinn?', lang: 'de' },
+    { text: 'קשר', lang: 'he' }
+  ],
+  default: [
+    { text: 'Wandere weiter', lang: 'de' },
+    { text: 'המשך לנדוד', lang: 'he' }
+  ]
+};
+
+function toggleReflectionExpand() {
+  const panel = document.getElementById('reflection-panel');
+  panel.classList.toggle('expanded');
+}
+
+function updateReflectionEchoes(regionName) {
+  const echo1 = document.getElementById('echo-1');
+  const echo2 = document.getElementById('echo-2');
+  const echoes = reflectionEchoes[regionName] || reflectionEchoes.default;
+
+  if (echo1 && echoes[0]) {
+    echo1.innerHTML = `${echoes[0].text} <span class="lang">${echoes[0].lang}</span>`;
+  }
+  if (echo2 && echoes[1]) {
+    echo2.innerHTML = `${echoes[1].text} <span class="lang">${echoes[1].lang}</span>`;
+  }
+}
+
+function toggleSuggestion() {
+  document.getElementById('suggestion-panel').classList.toggle('open');
+}
+
+// Inline transform panel - graceful expansion
+async function toggleTransformInline() {
+  const panel = document.getElementById('transform-inline');
+  const toggle = document.getElementById('transform-toggle');
+  const input = document.getElementById('transform-inline-input');
+
+  if (panel.classList.contains('expanded')) {
+    closeTransformInline();
+  } else {
+    panel.classList.add('expanded');
+    toggle.style.opacity = '0';
+    toggle.style.pointerEvents = 'none';
+
+    // Try to read from clipboard for initial suggestion
+    try {
+      const clipText = await navigator.clipboard.readText();
+      if (clipText && clipText.length < 200 && clipText.length > 2) {
+        input.value = clipText;
+      }
+    } catch (e) { /* clipboard access denied - ignore */ }
+
+    setTimeout(() => input.focus(), 100);
+  }
+}
+
+function closeTransformInline() {
+  const panel = document.getElementById('transform-inline');
+  const toggle = document.getElementById('transform-toggle');
+
+  panel.classList.remove('expanded');
+  toggle.style.opacity = '';
+  toggle.style.pointerEvents = '';
+}
+
+async function transformSpaceInline() {
+  const input = document.getElementById('transform-inline-input');
+  const suggestion = input.value.trim();
+
+  if (!suggestion) {
+    input.focus();
+    return;
+  }
+
+  // Transfer to main transform function
+  document.getElementById('suggestion-input').value = suggestion;
+  closeTransformInline();
+  await transformSpace();
+}
+
+function saveApiKey(key) {
+  localStorage.setItem('innie-compass-api-key', key);
+  validateApiKey(key);
+}
+
+function saveModel(model) {
+  localStorage.setItem('innie-compass-model', model);
+}
+
+function getApiKey() { return localStorage.getItem('innie-compass-api-key') || ''; }
+function getModel() { return localStorage.getItem('innie-compass-model') || 'anthropic/claude-sonnet-4'; }
+
+function validateApiKey(key) {
+  const status = document.getElementById('api-status');
+  if (!key) {
+    status.textContent = 'No key configured';
+    status.className = 'api-status';
+  } else if (key.startsWith('sk-or-')) {
+    status.textContent = 'Key configured';
+    status.className = 'api-status valid';
+  } else {
+    status.textContent = 'Invalid format';
+    status.className = 'api-status invalid';
+  }
+}
+
+// Init settings
+document.getElementById('api-key').value = getApiKey();
+document.getElementById('model-select').value = getModel();
+validateApiKey(getApiKey());
+
+// =========================================================================
+// LLM TRANSFORMATION with Intent-Based Context Routing
+// =========================================================================
+
+// Intent categories for smart context selection
+const INTENT_MAP = {
+  visual: {
+    triggers: ['look', 'color', 'style', 'theme', 'dark', 'light', 'bright', 'dim',
+               'glow', 'shadow', 'gradient', 'opacity', 'transparency', 'blur',
+               'texture', 'aesthetic', 'beautiful', 'font', 'accent', 'warm', 'cool'],
+    focus: 'visual appearance',
+    prompt: `Focus on VISUAL changes. Key code areas:
+- CSS variables (color palette, gradients, shadows)
+- Canvas drawing functions (glow effects, trails, region styling)
+- Visual effects (texture overlays, ambient animations)
+Preserve interaction mechanics. Maintain contemplative aesthetic.`
+  },
+  behavioral: {
+    triggers: ['behave', 'respond', 'react', 'when', 'momentum', 'physics',
+               'speed', 'slow', 'fast', 'smooth', 'jerky', 'delay', 'drag'],
+    focus: 'interaction behavior',
+    prompt: `Focus on BEHAVIORAL changes. Key code areas:
+- Physics state (friction, spring constants, velocity)
+- Event handlers (drag, touch, scroll response)
+- Animation loop (smoothing, easing, timing)
+Preserve visual styling. Ensure mobile touch remains responsive.`
+  },
+  textual: {
+    triggers: ['word', 'text', 'prompt', 'question', 'message', 'label', 'title',
+               'say', 'write', 'language', 'tone', 'contemplative', 'region'],
+    focus: 'words and prompts',
+    prompt: `Focus on TEXTUAL changes. Key code areas:
+- Region definitions (names and contemplative prompts)
+- Depth prompts (layer-specific questions)
+- UI labels (axis labels, panel titles, button text)
+Preserve code structure. Maintain contemplative, non-judgmental tone.`
+  },
+  structural: {
+    triggers: ['layout', 'position', 'where', 'move', 'arrange', 'order',
+               'hierarchy', 'header', 'footer', 'panel', 'sidebar', 'grid'],
+    focus: 'layout structure',
+    prompt: `Focus on STRUCTURAL changes. Key code areas:
+- HTML elements (panels, canvas, overlays)
+- CSS layout (flex, grid, positioning)
+- Responsive rules (mobile adaptations)
+Preserve functionality. Consider touch-friendly sizing.`
+  },
+  interactive: {
+    triggers: ['touch', 'tap', 'swipe', 'pinch', 'zoom', 'scroll', 'wheel',
+               'keyboard', 'gesture', 'mobile', 'phone', 'responsive'],
+    focus: 'input handling',
+    prompt: `Focus on INPUT HANDLING changes. Key code areas:
+- Event handlers (mouse, touch, keyboard)
+- Touch handling (passive listeners, gestures)
+- Responsive CSS (device-specific adjustments)
+Preserve visual styling. Optimize for touch devices.`
+  }
+};
+
+const BASE_PROMPT = `You are evolving "Innie Compass", a contemplative single-file webapp.
+Canvas-based navigation: X (Reflection-Expression), Y (Grounding-Expansion), Z (Depth via scroll).
+Regions with prompts. Physics-based smooth movement with trails.
+
+RESPOND WITH ONLY complete HTML starting with <!DOCTYPE html>
+No markdown, no explanation. Honor the user's vision.`;
+
+function detectIntent(query) {
+  const lower = query.toLowerCase();
+  const matches = [];
+
+  for (const [intent, config] of Object.entries(INTENT_MAP)) {
+    const score = config.triggers.reduce((sum, trigger) =>
+      sum + (lower.includes(trigger) ? 1 : 0), 0);
+    if (score > 0) matches.push({ intent, score, config });
+  }
+
+  matches.sort((a, b) => b.score - a.score);
+  return matches.length > 0 ? matches[0] : null;
+}
+
+function buildSystemPrompt(query) {
+  const detected = detectIntent(query);
+  if (detected) {
+    console.log(`Intent detected: ${detected.intent} (focus: ${detected.config.focus})`);
+    return `${BASE_PROMPT}\n\n${detected.config.prompt}`;
+  }
+  return BASE_PROMPT;
+}
+
+async function transformSpace() {
+  const apiKey = getApiKey();
+  if (!apiKey) { alert('Configure API key in settings'); toggleSettings(); return; }
+
+  const suggestion = document.getElementById('suggestion-input').value.trim();
+  if (!suggestion) { alert('Describe the transformation'); return; }
+
+  const overlay = document.getElementById('transform-overlay');
+  const status = document.getElementById('transform-status');
+  const btn = document.getElementById('transform-btn');
+
+  overlay.classList.add('active');
+  btn.disabled = true;
+
+  const detected = detectIntent(suggestion);
+  status.textContent = detected
+    ? `Analyzing ${detected.config.focus}...`
+    : 'Gathering trace...';
+
+  try {
+    const traceSummary = generateTraceSummary();
+    const currentHtml = document.documentElement.outerHTML;
+    const systemPrompt = buildSystemPrompt(suggestion);
+
+    status.textContent = 'Evolving...';
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': location.href,
+        'X-Title': 'Innie Compass'
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `HTML:\n${currentHtml}\n\nTRACE:\n${JSON.stringify(traceSummary)}\n\nREQUEST: ${suggestion}` }
+        ],
+        max_tokens: 16000,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) throw new Error((await response.json()).error?.message || 'API failed');
+
+    let html = (await response.json()).choices[0].message.content.trim();
+    if (html.startsWith('```')) html = html.replace(/^```\w*\n?/, '').replace(/```$/, '').trim();
+    if (!html.startsWith('<!DOCTYPE') && !html.startsWith('<html')) throw new Error('Invalid HTML');
+
+    status.textContent = 'Transforming...';
+    document.open(); document.write(html); document.close();
+  } catch (e) {
+    console.error(e);
+    alert('Failed: ' + e.message);
+    overlay.classList.remove('active');
+    btn.disabled = false;
+  }
+}
+
+// =========================================================================
+// CONTEMPLATIVE REGIONS
+// =========================================================================
+
+const regions = [
+  { x: 0, y: 0, r: 0.15, name: 'Presence', color: '#ffffff', prompt: 'Rest here. What arises when nothing is sought?' },
+  { x: 0, y: -0.7, r: 0.18, name: 'Grounding', color: '#7ce8a8', prompt: 'Feel your weight. What supports you?' },
+  { x: 0, y: 0.7, r: 0.18, name: 'Expansion', color: '#e8a87c', prompt: 'What wants to grow?' },
+  { x: -0.7, y: 0, r: 0.18, name: 'Reflection', color: '#7ca8e8', prompt: 'Turn inward. What have you been avoiding?' },
+  { x: 0.7, y: 0, r: 0.18, name: 'Expression', color: '#e87c7c', prompt: 'What wants to be said?' },
+  { x: -0.5, y: -0.5, r: 0.14, name: 'Memory', color: '#a87ce8', prompt: 'What from the past still lives in you?' },
+  { x: 0.5, y: -0.5, r: 0.14, name: 'Practice', color: '#7ce8e8', prompt: 'What skill wants honing?' },
+  { x: -0.5, y: 0.5, r: 0.14, name: 'Vision', color: '#e8e87c', prompt: 'What do you see wanting to become?' },
+  { x: 0.5, y: 0.5, r: 0.14, name: 'Connection', color: '#e87ce8', prompt: 'Who comes to mind?' },
+  { x: -0.85, y: -0.3, r: 0.1, name: 'Solitude', color: '#6080a0', prompt: 'When did you last enjoy being alone?' },
+  { x: 0.85, y: -0.3, r: 0.1, name: 'Action', color: '#a06060', prompt: 'What needs doing?' },
+  { x: -0.85, y: 0.3, r: 0.1, name: 'Dreams', color: '#8060a0', prompt: 'What symbols recur?' },
+  { x: 0.85, y: 0.3, r: 0.1, name: 'Play', color: '#a08060', prompt: 'When did you last feel pure joy?' },
+  { x: -0.3, y: -0.85, r: 0.1, name: 'Body', color: '#60a080', prompt: 'Where do you hold tension?' },
+  { x: 0.3, y: -0.85, r: 0.1, name: 'Breath', color: '#60a0a0', prompt: 'Take three slow breaths.' },
+  { x: -0.3, y: 0.85, r: 0.1, name: 'Purpose', color: '#a0a060', prompt: 'What gives meaning?' },
+  { x: 0.3, y: 0.85, r: 0.1, name: 'Gratitude', color: '#a06080', prompt: 'Name three things you are grateful for.' },
+];
+
+const depthPrompts = [
+  { min: 0.0, max: 0.2, label: 'Surface', prompt: 'Stay light. What catches your eye?' },
+  { min: 0.2, max: 0.4, label: 'Noticing', prompt: 'Something stirs beneath.' },
+  { min: 0.4, max: 0.6, label: 'Feeling', prompt: 'Allow feeling to arise.' },
+  { min: 0.6, max: 0.8, label: 'Understanding', prompt: 'What do you know but haven\'t admitted?' },
+  { min: 0.8, max: 1.0, label: 'Source', prompt: 'At the root, what do you find?' },
+];
+
+// =========================================================================
+// CANVAS SETUP
+// =========================================================================
+
+function resize() {
+  const container = canvas.parentElement;
+  const maxSize = Math.min(container.clientWidth, container.clientHeight);
+  const size = Math.min(maxSize - 32, 600);
+  canvas.width = size * (window.devicePixelRatio || 1);
+  canvas.height = size * (window.devicePixelRatio || 1);
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+}
+
+window.addEventListener('resize', resize);
+resize();
+
+// =========================================================================
+// DRAWING WITH VISUAL POLISH
+// =========================================================================
+
+function draw() {
+  const w = parseInt(canvas.style.width);
+  const h = parseInt(canvas.style.height);
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(w, h) / 2 - 16;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Breathing effect
+  state.breathPhase += 0.008;
+  const breath = Math.sin(state.breathPhase) * 0.5 + 0.5;
+
+  // Pulse based on activity
+  state.pulsePhase += state.isDragging ? 0.1 : 0.02;
+  const pulse = Math.sin(state.pulsePhase) * 0.3 + 0.7;
+
+  // Background with depth
+  const bgGrad = ctx.createRadialGradient(cx, cy * 0.9, 0, cx, cy, r * 1.2);
+  bgGrad.addColorStop(0, `rgba(32, 28, 42, ${0.9 + breath * 0.1})`);
+  bgGrad.addColorStop(0.4, 'rgba(20, 18, 28, 1)');
+  bgGrad.addColorStop(0.7, 'rgba(13, 12, 18, 1)');
+  bgGrad.addColorStop(1, 'rgba(8, 8, 12, 1)');
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = bgGrad;
+  ctx.fill();
+
+  // Outer glow ring
+  const glowGrad = ctx.createRadialGradient(cx, cy, r * 0.95, cx, cy, r * 1.05);
+  glowGrad.addColorStop(0, 'rgba(168, 124, 232, 0)');
+  glowGrad.addColorStop(0.5, `rgba(168, 124, 232, ${0.05 + state.glowIntensity * 0.1})`);
+  glowGrad.addColorStop(1, 'rgba(168, 124, 232, 0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = glowGrad;
+  ctx.fill();
+
+  // Outer ring with subtle depth
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(60, 55, 80, ${0.4 + breath * 0.2})`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  drawGrid(cx, cy, r, breath);
+
+  // Progression layers (unlockable)
+  if (progression.liminalAlpha > 0.01) drawLiminalRing(cx, cy, r, breath);
+  if (progression.constellationAlpha > 0.01) drawConstellations(cx, cy, r);
+  if (progression.sanctumAlpha > 0.01) drawInnerSanctum(cx, cy, r, breath);
+  if (progression.glyphAlpha > 0.01) drawDeepGlyphs(cx, cy, r);
+
+  drawTrail(cx, cy, r);
+  drawRegions(cx, cy, r, pulse);
+
+  // Unlock flash animations
+  drawUnlockAnimations(cx, cy, r);
+
+  drawIndicator(cx, cy, r);
+}
+
+// =========================================================================
+// PROGRESSION VISUAL LAYERS
+// =========================================================================
+
+function drawConstellations(cx, cy, r) {
+  // Connect visited regions with ethereal lines
+  const visited = [...trace.regionVisits.keys()];
+  if (visited.length < 2) return;
+
+  ctx.save();
+  ctx.globalAlpha = progression.constellationAlpha * 0.4;
+
+  // Find visited region objects
+  const visitedRegions = regions.filter(reg => visited.includes(reg.name));
+
+  // Draw connections between nearby visited regions
+  for (let i = 0; i < visitedRegions.length; i++) {
+    for (let j = i + 1; j < visitedRegions.length; j++) {
+      const r1 = visitedRegions[i];
+      const r2 = visitedRegions[j];
+      const dist = Math.sqrt((r1.x - r2.x) ** 2 + (r1.y - r2.y) ** 2);
+
+      // Only connect regions within reasonable distance
+      if (dist < 0.8) {
+        const x1 = cx + r1.x * r * 0.88;
+        const y1 = cy + r1.y * r * 0.88;
+        const x2 = cx + r2.x * r * 0.88;
+        const y2 = cy + r2.y * r * 0.88;
+
+        // Gradient line between region colors
+        const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+        grad.addColorStop(0, r1.color + '60');
+        grad.addColorStop(1, r2.color + '60');
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Small star at midpoint
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.beginPath();
+        ctx.arc(mx, my, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawInnerSanctum(cx, cy, r, breath) {
+  // Sacred inner zone - appears after all regions visited
+  ctx.save();
+  const alpha = progression.sanctumAlpha;
+  const sanctumR = r * 0.12;
+  const pulse = Math.sin(state.breathPhase * 2) * 0.5 + 0.5;
+
+  // Outer glow
+  const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, sanctumR * 3);
+  glowGrad.addColorStop(0, `rgba(255, 215, 180, ${alpha * 0.3 * pulse})`);
+  glowGrad.addColorStop(0.5, `rgba(200, 180, 255, ${alpha * 0.15})`);
+  glowGrad.addColorStop(1, 'rgba(200, 180, 255, 0)');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, sanctumR * 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Inner sacred circle
+  const innerGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, sanctumR);
+  innerGrad.addColorStop(0, `rgba(255, 250, 240, ${alpha * 0.9})`);
+  innerGrad.addColorStop(0.7, `rgba(255, 220, 200, ${alpha * 0.6})`);
+  innerGrad.addColorStop(1, `rgba(200, 180, 220, ${alpha * 0.3})`);
+  ctx.fillStyle = innerGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, sanctumR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Sanctum ring
+  ctx.strokeStyle = `rgba(255, 240, 220, ${alpha * 0.6})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, sanctumR, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Inner symbol - simple sacred geometry
+  ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2 + state.breathPhase * 0.1;
+    const inner = sanctumR * 0.3;
+    const outer = sanctumR * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
+    ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawLiminalRing(cx, cy, r, breath) {
+  // Outer boundary zone - appears after sustained stillness
+  ctx.save();
+  const alpha = progression.liminalAlpha;
+  const pulse = Math.sin(state.breathPhase * 0.5) * 0.5 + 0.5;
+
+  // Outer ethereal ring
+  const outerR = r * 1.08;
+  const liminalGrad = ctx.createRadialGradient(cx, cy, r * 0.98, cx, cy, outerR);
+  liminalGrad.addColorStop(0, 'rgba(100, 80, 140, 0)');
+  liminalGrad.addColorStop(0.3, `rgba(80, 100, 160, ${alpha * 0.15 * pulse})`);
+  liminalGrad.addColorStop(0.7, `rgba(60, 80, 140, ${alpha * 0.2})`);
+  liminalGrad.addColorStop(1, `rgba(40, 50, 100, ${alpha * 0.1})`);
+
+  ctx.fillStyle = liminalGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+  ctx.arc(cx, cy, r * 0.98, 0, Math.PI * 2, true);
+  ctx.fill();
+
+  // Liminal boundary dashes
+  ctx.setLineDash([8, 12]);
+  ctx.strokeStyle = `rgba(120, 140, 180, ${alpha * 0.3})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 1.02, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Floating motes in liminal zone
+  const moteCount = 8;
+  for (let i = 0; i < moteCount; i++) {
+    const angle = (i / moteCount) * Math.PI * 2 + state.breathPhase * 0.3;
+    const moteR = r * 1.04 + Math.sin(angle * 3 + state.breathPhase) * 4;
+    const mx = cx + Math.cos(angle) * moteR;
+    const my = cy + Math.sin(angle) * moteR;
+    const moteAlpha = alpha * 0.4 * (0.5 + Math.sin(angle * 2 + state.breathPhase * 2) * 0.5);
+
+    ctx.fillStyle = `rgba(180, 200, 255, ${moteAlpha})`;
+    ctx.beginPath();
+    ctx.arc(mx, my, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawDeepGlyphs(cx, cy, r) {
+  // Ancient symbols - appear after visiting all depth levels
+  ctx.save();
+  const alpha = progression.glyphAlpha;
+  const rotation = state.breathPhase * 0.05;
+
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+  ctx.translate(-cx, -cy);
+
+  ctx.strokeStyle = `rgba(160, 140, 120, ${alpha * 0.25})`;
+  ctx.lineWidth = 1;
+
+  // Draw subtle glyphs at cardinal positions
+  const glyphPositions = [
+    { x: 0, y: -0.92 },
+    { x: 0, y: 0.92 },
+    { x: -0.92, y: 0 },
+    { x: 0.92, y: 0 },
+  ];
+
+  const glyphs = ['☉', '☽', '✧', '⊕']; // Sun, Moon, Star, Earth
+
+  ctx.font = `${12 + alpha * 4}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = `rgba(180, 160, 140, ${alpha * 0.4})`;
+
+  glyphPositions.forEach((pos, i) => {
+    const gx = cx + pos.x * r;
+    const gy = cy + pos.y * r;
+    ctx.fillText(glyphs[i], gx, gy);
+  });
+
+  // Connecting arcs between glyphs
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.92, 0, Math.PI * 2);
+  ctx.setLineDash([2, 6]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.restore();
+}
+
+function drawUnlockAnimations(cx, cy, r) {
+  // Flash effect when a tier is unlocked
+  for (const anim of progression.unlockAnimations) {
+    const elapsed = Date.now() - anim.startTime;
+    const progress = elapsed / anim.duration;
+    const alpha = Math.sin(progress * Math.PI) * 0.5;
+
+    if (alpha > 0.01) {
+      ctx.save();
+      const expandR = r * (0.5 + progress * 0.6);
+      const grad = ctx.createRadialGradient(cx, cy, expandR * 0.8, cx, cy, expandR);
+
+      let color = '168, 124, 232'; // Default purple
+      if (anim.tier === 'innerSanctum') color = '255, 220, 180';
+      if (anim.tier === 'liminalRing') color = '120, 160, 200';
+      if (anim.tier === 'deepGlyphs') color = '180, 160, 140';
+      if (anim.tier === 'fullAwakening') color = '255, 255, 255';
+
+      grad.addColorStop(0, `rgba(${color}, 0)`);
+      grad.addColorStop(0.5, `rgba(${color}, ${alpha * 0.3})`);
+      grad.addColorStop(1, `rgba(${color}, 0)`);
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, expandR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+function drawGrid(cx, cy, r, breath) {
+  // Update ring rotations with inertia
+  const ringFriction = 0.995;
+  const ringDrift = [0.0003, -0.0002, 0.00015, -0.0001]; // ambient drift speeds
+
+  for (let i = 0; i < 4; i++) {
+    state.ringVelocities[i] *= ringFriction;
+    state.ringVelocities[i] += ringDrift[i];
+    state.ringRotations[i] += state.ringVelocities[i];
+  }
+
+  ctx.strokeStyle = `rgba(60, 55, 80, ${0.08 + breath * 0.04})`;
+  ctx.lineWidth = 0.5;
+
+  // Ba-gua style rotating concentric rings with markings
+  for (let i = 1; i <= 4; i++) {
+    const ringR = r * i / 4;
+    const rotation = state.ringRotations[i - 1];
+    const segments = 8 + (i - 1) * 4; // More segments on outer rings
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotation);
+
+    ctx.globalAlpha = 0.25 + (1 - i/4) * 0.35;
+
+    // Main ring circle
+    ctx.beginPath();
+    ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Ba-gua style segment marks
+    ctx.globalAlpha *= 0.5;
+    for (let s = 0; s < segments; s++) {
+      const angle = (s / segments) * Math.PI * 2;
+      const markLen = i === 4 ? 4 : 3;
+      const inner = ringR - markLen;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+      ctx.lineTo(Math.cos(angle) * ringR, Math.sin(angle) * ringR);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // Cardinal lines with gradient fade (stationary reference)
+  const lineGrad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
+  lineGrad.addColorStop(0, 'rgba(60, 55, 80, 0.05)');
+  lineGrad.addColorStop(0.3, 'rgba(60, 55, 80, 0.15)');
+  lineGrad.addColorStop(0.5, 'rgba(60, 55, 80, 0.2)');
+  lineGrad.addColorStop(0.7, 'rgba(60, 55, 80, 0.15)');
+  lineGrad.addColorStop(1, 'rgba(60, 55, 80, 0.05)');
+
+  ctx.strokeStyle = lineGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.9, cy);
+  ctx.lineTo(cx + r * 0.9, cy);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r * 0.9);
+  ctx.lineTo(cx, cy + r * 0.9);
+  ctx.stroke();
+}
+
+function drawTrail(cx, cy, r) {
+  if (state.trail.length < 2) return;
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Draw glowing trail
+  for (let pass = 0; pass < 2; pass++) {
+    ctx.beginPath();
+    ctx.moveTo(cx + state.trail[0].x * r * 0.88, cy + state.trail[0].y * r * 0.88);
+
+    for (let i = 1; i < state.trail.length; i++) {
+      const p = state.trail[i];
+      const progress = i / state.trail.length;
+      const alpha = ease.outExpo(progress) * (pass === 0 ? 0.15 : 0.4);
+
+      ctx.lineTo(cx + p.x * r * 0.88, cy + p.y * r * 0.88);
+    }
+
+    ctx.strokeStyle = pass === 0
+      ? `rgba(168, 124, 232, 0.2)`
+      : `rgba(180, 160, 220, 0.5)`;
+    ctx.lineWidth = pass === 0 ? 8 : 2;
+    ctx.stroke();
+  }
+}
+
+function drawRegions(cx, cy, r, pulse) {
+  for (const region of regions) {
+    const x = cx + region.x * r * 0.88;
+    const y = cy + region.y * r * 0.88;
+    const regionR = region.r * r;
+
+    const dist = Math.sqrt((state.smoothX - region.x) ** 2 + (state.smoothY - region.y) ** 2);
+    const isNear = dist < region.r * 2.5;
+    const isInside = dist < region.r;
+    const proximity = isNear ? 1 - dist / (region.r * 2.5) : 0;
+
+    // Glow halo when near
+    if (isNear) {
+      const haloGrad = ctx.createRadialGradient(x, y, 0, x, y, regionR * 2);
+      haloGrad.addColorStop(0, region.color + Math.floor(proximity * 25).toString(16).padStart(2, '0'));
+      haloGrad.addColorStop(0.5, region.color + Math.floor(proximity * 12).toString(16).padStart(2, '0'));
+      haloGrad.addColorStop(1, region.color + '00');
+      ctx.beginPath();
+      ctx.arc(x, y, regionR * 2, 0, Math.PI * 2);
+      ctx.fillStyle = haloGrad;
+      ctx.fill();
+    }
+
+    // Region disc with gradient
+    const discGrad = ctx.createRadialGradient(x - regionR * 0.3, y - regionR * 0.3, 0, x, y, regionR);
+    const baseAlpha = isInside ? 0.35 : 0.12;
+    discGrad.addColorStop(0, region.color + Math.floor((baseAlpha + 0.1) * 255).toString(16).padStart(2, '0'));
+    discGrad.addColorStop(1, region.color + Math.floor(baseAlpha * 255).toString(16).padStart(2, '0'));
+
+    ctx.beginPath();
+    ctx.arc(x, y, regionR, 0, Math.PI * 2);
+    ctx.fillStyle = discGrad;
+    ctx.fill();
+
+    // Border with glow
+    ctx.beginPath();
+    ctx.arc(x, y, regionR, 0, Math.PI * 2);
+    ctx.strokeStyle = region.color + (isInside ? 'a0' : isNear ? '60' : '30');
+    ctx.lineWidth = isInside ? 2 : 1;
+    ctx.stroke();
+
+    // Label with shadow
+    if (isNear || region.r > 0.12) {
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 1;
+      ctx.fillStyle = isNear ? '#e8e8f0' : '#707088';
+      ctx.font = `${isNear ? 11 : 9}px Georgia, serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(region.name, x, y + regionR + 12);
+      ctx.shadowBlur = 0;
+    }
+  }
+}
+
+function drawIndicator(cx, cy, r) {
+  const x = cx + state.smoothX * r * 0.88;
+  const y = cy + state.smoothY * r * 0.88;
+  const baseR = 10 + state.smoothZ * 6;
+  const indicatorR = baseR + (state.isDragging ? 2 : 0);
+
+  // Outer glow
+  const outerGlow = ctx.createRadialGradient(x, y, indicatorR, x, y, indicatorR * 3);
+  outerGlow.addColorStop(0, `rgba(255, 255, 255, ${0.15 + state.glowIntensity * 0.2})`);
+  outerGlow.addColorStop(0.5, 'rgba(200, 180, 255, 0.05)');
+  outerGlow.addColorStop(1, 'rgba(200, 180, 255, 0)');
+  ctx.beginPath();
+  ctx.arc(x, y, indicatorR * 3, 0, Math.PI * 2);
+  ctx.fillStyle = outerGlow;
+  ctx.fill();
+
+  // Shadow
+  ctx.beginPath();
+  ctx.arc(x + 2, y + 3, indicatorR, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.fill();
+
+  // Main orb with 3D shading
+  const orbGrad = ctx.createRadialGradient(x - indicatorR * 0.35, y - indicatorR * 0.35, 0, x, y, indicatorR);
+  orbGrad.addColorStop(0, '#ffffff');
+  orbGrad.addColorStop(0.3, '#f0f0f8');
+  orbGrad.addColorStop(0.7, '#d0d0e0');
+  orbGrad.addColorStop(1, '#b0b0c8');
+
+  ctx.beginPath();
+  ctx.arc(x, y, indicatorR, 0, Math.PI * 2);
+  ctx.fillStyle = orbGrad;
+  ctx.fill();
+
+  // Rim light
+  ctx.beginPath();
+  ctx.arc(x, y, indicatorR, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Depth indicator ring
+  if (state.smoothZ > 0.3) {
+    ctx.beginPath();
+    ctx.arc(x, y, indicatorR + 4 + state.smoothZ * 4, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(168, 124, 232, ${state.smoothZ * 0.5})`;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// =========================================================================
+// INTERACTION WITH PHYSICS
+// =========================================================================
+
+function getCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.clientX ?? e.touches?.[0]?.clientX;
+  const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function toNormalized(canvasX, canvasY) {
+  const w = parseInt(canvas.style.width);
+  const h = parseInt(canvas.style.height);
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(w, h) / 2 - 16;
+
+  let nx = (canvasX - cx) / (r * 0.88);
+  let ny = (canvasY - cy) / (r * 0.88);
+
+  const mag = Math.sqrt(nx * nx + ny * ny);
+  if (mag > 1) { nx /= mag; ny /= mag; }
+
+  return { x: nx, y: ny };
+}
+
+function handleStart(e) {
+  e.preventDefault();
+  state.isDragging = true;
+  state.isTouch = e.type.startsWith('touch');
+  state.glowTarget = 1;
+
+  const { x, y } = getCoords(e);
+  const norm = toNormalized(x, y);
+  state.targetX = norm.x;
+  state.targetY = norm.y;
+
+  // Capture current velocity for smooth transition
+  physics.ax = 0;
+  physics.ay = 0;
+
+  // Capture initial angle for ring rotation
+  state.lastDragAngle = Math.atan2(norm.y, norm.x);
+
+  state.stillnessStart = Date.now();
+  logEvent(state.isTouch ? 'touch_start' : 'drag_start');
+}
+
+function handleMove(e) {
+  if (!state.isDragging) return;
+  e.preventDefault();
+
+  const { x, y } = getCoords(e);
+  const norm = toNormalized(x, y);
+
+  const dx = norm.x - state.targetX;
+  const dy = norm.y - state.targetY;
+  const moved = Math.abs(dx) > 0.003 || Math.abs(dy) > 0.003;
+
+  if (moved) {
+    // Calculate instantaneous velocity for momentum
+    physics.vx = dx * physics.momentumScale;
+    physics.vy = dy * physics.momentumScale;
+
+    state.wanderCount++;
+    state.stillnessStart = Date.now();
+
+    // Trail with timestamp for time-based fading
+    state.trail.push({ x: state.x, y: state.y, t: Date.now(), z: state.z });
+    if (state.trail.length > 80) state.trail.shift();
+
+    // Pulse glow on movement
+    state.glowTarget = Math.min(state.glowTarget + 0.1, 1);
+
+    // Impart rotation to rings based on angular movement
+    const currentAngle = Math.atan2(norm.y, norm.x);
+    const angleDelta = currentAngle - state.lastDragAngle;
+    // Normalize angle delta to prevent jumps
+    const normAngleDelta = Math.abs(angleDelta) < Math.PI ? angleDelta : 0;
+
+    // Outer rings get more rotation, inner rings less
+    const dist = Math.sqrt(norm.x ** 2 + norm.y ** 2);
+    for (let i = 0; i < 4; i++) {
+      const ringInfluence = (i + 1) / 4;
+      const distFactor = Math.min(1, dist / ringInfluence);
+      state.ringVelocities[i] += normAngleDelta * 0.15 * distFactor * (4 - i) / 4;
+    }
+    state.lastDragAngle = currentAngle;
+
+    if (Date.now() - trace.lastEventTime > 120) {
+      logEvent('move');
+      trace.lastEventTime = Date.now();
+    }
+  }
+
+  state.targetX = norm.x;
+  state.targetY = norm.y;
+  state.lastMoveTime = Date.now();
+}
+
+function handleEnd(e) {
+  if (state.isDragging) {
+    // Retain some momentum on release
+    physics.vx *= physics.momentumScale;
+    physics.vy *= physics.momentumScale;
+    logEvent(state.isTouch ? 'touch_end' : 'drag_end');
+  }
+  state.isDragging = false;
+  state.isTouch = false;
+}
+
+// Mouse events
+canvas.addEventListener('mousedown', handleStart);
+canvas.addEventListener('mousemove', handleMove);
+canvas.addEventListener('mouseup', handleEnd);
+canvas.addEventListener('mouseleave', handleEnd);
+
+// Touch events with improved handling
+canvas.addEventListener('touchstart', handleStart, { passive: false });
+canvas.addEventListener('touchmove', handleMove, { passive: false });
+canvas.addEventListener('touchend', handleEnd);
+canvas.addEventListener('touchcancel', handleEnd);
+
+// Depth via wheel with momentum
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY * -0.004;
+  state.targetZ = Math.max(0, Math.min(1, state.targetZ + delta));
+  physics.vz = delta * 0.5;
+  if (Math.abs(delta) > 0.02) {
+    logEvent('depth_change', { delta });
+  }
+}, { passive: false });
+
+// Touch pinch for depth (two-finger)
+let lastPinchDist = 0;
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (lastPinchDist > 0) {
+      const delta = (dist - lastPinchDist) * 0.003;
+      state.targetZ = Math.max(0, Math.min(1, state.targetZ + delta));
+    }
+    lastPinchDist = dist;
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchend', () => { lastPinchDist = 0; });
+
+// =========================================================================
+// STATE UPDATE & ANIMATION
+// =========================================================================
+
+function updateState() {
+  // Frame-rate independent timing
+  const now = performance.now();
+  const dt = Math.min((now - state.lastFrameTime) / 16.67, 2); // Cap at 2x for stability
+  state.lastFrameTime = now;
+
+  // Adaptive responsiveness based on input type
+  const resp = state.isTouch ? physics.responsiveness * physics.touchMultiplier : physics.responsiveness;
+
+  if (state.isDragging) {
+    // Direct following with smooth acceleration
+    const dx = state.targetX - state.x;
+    const dy = state.targetY - state.y;
+
+    // Accelerate smoothly toward target
+    physics.ax = dx * physics.springK;
+    physics.ay = dy * physics.springK;
+
+    physics.vx = (physics.vx + physics.ax) * physics.damping;
+    physics.vy = (physics.vy + physics.ay) * physics.damping;
+
+    state.x += physics.vx * dt + dx * resp * dt;
+    state.y += physics.vy * dt + dy * resp * dt;
+
+    // Track for momentum on release
+    state.prevX = state.x;
+    state.prevY = state.y;
+  } else {
+    // Free momentum with friction
+    state.x += physics.vx * dt;
+    state.y += physics.vy * dt;
+    physics.vx *= Math.pow(physics.friction, dt);
+    physics.vy *= Math.pow(physics.friction, dt);
+
+    // Stop when velocity is negligible
+    if (Math.abs(physics.vx) < physics.minVelocity) physics.vx = 0;
+    if (Math.abs(physics.vy) < physics.minVelocity) physics.vy = 0;
+  }
+
+  // Soft boundary with spring-back
+  const mag = Math.sqrt(state.x ** 2 + state.y ** 2);
+  if (mag > 1) {
+    const overflow = mag - 1;
+    const springForce = overflow * physics.boundarySpring;
+    state.x -= (state.x / mag) * springForce * dt;
+    state.y -= (state.y / mag) * springForce * dt;
+    // Dampen velocity when hitting boundary
+    physics.vx *= 0.9;
+    physics.vy *= 0.9;
+  }
+
+  // Depth with smooth interpolation
+  state.z += (state.targetZ - state.z) * 0.08 * dt;
+  physics.vz *= physics.frictionZ;
+
+  // Smooth visual interpolation with adaptive easing
+  const smoothBase = state.isDragging ? 0.18 : 0.10;
+  const smoothFactor = smoothBase * dt;
+  state.smoothX += (state.x - state.smoothX) * smoothFactor;
+  state.smoothY += (state.y - state.smoothY) * smoothFactor;
+  state.smoothZ += (state.z - state.smoothZ) * 0.12 * dt;
+
+  // Subtle parallax for depth
+  state.parallaxX += (state.smoothX * 0.02 - state.parallaxX) * 0.05;
+  state.parallaxY += (state.smoothY * 0.02 - state.parallaxY) * 0.05;
+
+  // Smooth glow transitions
+  state.glowIntensity += (state.glowTarget - state.glowIntensity) * 0.1 * dt;
+  state.glowTarget *= 0.97;
+
+  // Find current region
+  let currentRegion = null;
+  let minDist = Infinity;
+
+  for (const region of regions) {
+    const dist = Math.sqrt((state.smoothX - region.x) ** 2 + (state.smoothY - region.y) ** 2);
+    if (dist < region.r && dist < minDist) {
+      minDist = dist;
+      currentRegion = region;
+    }
+  }
+
+  // Track region visits
+  if (currentRegion) logRegionEnter(currentRegion.name);
+  else if (trace.currentRegion) logRegionExit(trace.currentRegion);
+
+  const depthLevel = depthPrompts.find(d => state.smoothZ >= d.min && state.smoothZ < d.max) || depthPrompts[2];
+  updateDisplay(currentRegion, depthLevel);
+
+  // Update prompt
+  const promptEl = document.getElementById('prompt');
+  const metaEl = document.getElementById('prompt-meta');
+  if (promptEl && metaEl) {
+    if (currentRegion) {
+      promptEl.textContent = currentRegion.prompt;
+      metaEl.textContent = `${currentRegion.name} · ${depthLevel.label}`;
+      updateReflectionEchoes(currentRegion.name);
+    } else {
+      promptEl.textContent = depthLevel.prompt;
+      metaEl.textContent = `Free space · ${depthLevel.label}`;
+      updateReflectionEchoes('default');
+    }
+  }
+}
+
+function updateDisplay(region, depthLevel) {
+  const energyLabels = ['Overflowing', 'Energized', 'Balanced', 'Low', 'Depleted'];
+  const focusLabels = ['Diffuse', 'Soft', 'Centered', 'Sharp', 'Intense'];
+
+  // Reversed: top (y=-1) = Grounding = Overflowing, bottom (y=1) = Expansion = Depleted
+  const energyIdx = Math.floor((state.smoothY + 1) / 2 * 4.99);
+  const focusIdx = Math.floor((state.smoothX + 1) / 2 * 4.99);
+
+  const energyValue = energyLabels[energyIdx];
+  const focusValue = focusLabels[focusIdx];
+  const moodValue = region?.name || 'Exploring';
+  const depthValue = depthLevel.label;
+
+  const energyEl = document.getElementById('energy');
+  const focusEl = document.getElementById('focus');
+  const moodEl = document.getElementById('mood');
+  const depthEl = document.getElementById('depth');
+  const stillnessEl = document.getElementById('stillness');
+  const wanderingEl = document.getElementById('wandering');
+  const depthValueEl = document.getElementById('depth-value');
+
+  if (energyEl) energyEl.textContent = energyValue;
+  if (focusEl) focusEl.textContent = focusValue;
+  if (moodEl) moodEl.textContent = moodValue;
+  if (depthEl) depthEl.textContent = depthValue;
+
+  // Update salience for graceful reveal
+  updateSalience('energy', energyValue);
+  updateSalience('focus', focusValue);
+  updateSalience('mood', moodValue);
+  updateSalience('depth', depthValue);
+
+  const stillness = Math.floor((Date.now() - state.stillnessStart) / 1000);
+  if (stillnessEl) stillnessEl.textContent = stillness + 's';
+  if (wanderingEl) wanderingEl.textContent = state.wanderCount;
+  if (depthValueEl) depthValueEl.textContent = state.smoothZ.toFixed(2);
+}
+
+// Trail cleanup
+function cleanupTrail() {
+  const now = Date.now();
+  if (!state.isDragging && state.trail.length > 0) {
+    if (now - state.lastMoveTime > 2000) {
+      state.trail.shift();
+    }
+  }
+}
+
+// Animation loop
+function animate() {
+  updateState();
+  cleanupTrail();
+
+  // Progression system updates
+  checkProgressionUnlocks();
+  const dt = Math.min((performance.now() - state.lastFrameTime) / 16.67, 2);
+  updateProgressionVisuals(dt);
+
+  draw();
+  drawMinimap();
+  updateTraceDisplay();
+  requestAnimationFrame(animate);
+}
+
+// =========================================================================
+// TESTS & ASSERTIONS
+// =========================================================================
+
+const tests = {
+  results: [],
+
+  assert(condition, name) {
+    this.results.push({ name, passed: !!condition });
+    if (!condition) console.warn(`TEST FAILED: ${name}`);
+  },
+
+  run() {
+    console.group('Running Innie Compass Tests');
+
+    // Utility function tests
+    this.assert(clamp(5, 0, 10) === 5, 'clamp: value in range unchanged');
+    this.assert(clamp(-5, 0, 10) === 0, 'clamp: value below min clamped');
+    this.assert(clamp(15, 0, 10) === 10, 'clamp: value above max clamped');
+    this.assert(lerp(0, 10, 0.5) === 5, 'lerp: midpoint correct');
+    this.assert(lerp(0, 10, 0) === 0, 'lerp: t=0 returns a');
+    this.assert(lerp(0, 10, 1) === 10, 'lerp: t=1 returns b');
+    this.assert(safeDivide(10, 2) === 5, 'safeDivide: normal division');
+    this.assert(safeDivide(10, 0, -1) === -1, 'safeDivide: divide by zero returns fallback');
+    this.assert(isFiniteNum(42) === true, 'isFiniteNum: 42 is finite');
+    this.assert(isFiniteNum(Infinity) === false, 'isFiniteNum: Infinity is not finite');
+    this.assert(isFiniteNum(NaN) === false, 'isFiniteNum: NaN is not finite');
+    this.assert(isFiniteNum('42') === false, 'isFiniteNum: string is not number');
+
+    // CONFIG immutability test
+    this.assert(Object.isFrozen(CONFIG), 'CONFIG is frozen');
+    this.assert(CONFIG.CONSTELLATION_THRESHOLD > 0, 'CONFIG.CONSTELLATION_THRESHOLD valid');
+    this.assert(CONFIG.DEPTH_LEVELS === 5, 'CONFIG.DEPTH_LEVELS is 5');
+
+    // Easing function tests
+    this.assert(ease.outExpo(0) === 0, 'ease.outExpo(0) === 0');
+    this.assert(ease.outExpo(1) === 1, 'ease.outExpo(1) === 1');
+    this.assert(ease.outExpo(0.5) > 0.9, 'ease.outExpo(0.5) > 0.9 (fast start)');
+
+    // Physics bounds tests
+    this.assert(physics.friction > 0 && physics.friction < 1, 'friction in valid range');
+    this.assert(physics.springK > 0 && physics.springK < 1, 'springK in valid range');
+    this.assert(physics.damping > 0 && physics.damping < 1, 'damping in valid range');
+
+    // State initialization tests
+    this.assert(state.x === 0 && state.y === 0, 'state initialized at origin');
+    this.assert(state.z >= 0 && state.z <= 1, 'depth in valid range');
+    this.assert(Array.isArray(state.trail), 'trail is array');
+    this.assert(Array.isArray(state.ringRotations), 'ringRotations is array');
+    this.assert(state.ringRotations.length === 4, 'ringRotations has 4 elements');
+
+    // Region tests
+    this.assert(regions.length > 0, 'regions defined');
+    this.assert(regions.length === 17, 'exactly 17 regions');
+    this.assert(regions.every(r => r.x >= -1 && r.x <= 1), 'region x in bounds');
+    this.assert(regions.every(r => r.y >= -1 && r.y <= 1), 'region y in bounds');
+    this.assert(regions.every(r => r.prompt && r.prompt.length > 0), 'regions have prompts');
+    this.assert(regions.every(r => r.color && r.color.startsWith('#')), 'regions have valid colors');
+
+    // Depth prompts tests
+    this.assert(depthPrompts.length === 5, 'five depth levels');
+    this.assert(depthPrompts[0].min === 0, 'depth starts at 0');
+    this.assert(depthPrompts[4].max === 1, 'depth ends at 1');
+
+    // Progression system tests
+    this.assert(typeof progression === 'object', 'progression object exists');
+    this.assert(typeof progression.tiers === 'object', 'progression.tiers exists');
+    this.assert(Object.keys(progression.tiers).length === 5, 'progression has 5 tiers');
+    this.assert(Object.values(progression.tiers).every(v => typeof v === 'boolean'), 'all tier values are boolean');
+    this.assert(typeof progression.conditions === 'object', 'progression.conditions exists');
+    this.assert(Object.values(progression.conditions).every(v => typeof v === 'function'), 'all conditions are functions');
+
+    // toNormalized bounds test
+    const norm1 = toNormalized(1000, 1000); // far outside
+    this.assert(Math.sqrt(norm1.x**2 + norm1.y**2) <= 1.01, 'toNormalized clamps to unit circle');
+
+    // Trace system tests
+    this.assert(trace.events.length >= 0, 'trace events initialized');
+    this.assert(trace.regionVisits instanceof Map, 'regionVisits is Map');
+
+    // Canvas exists
+    this.assert(canvas instanceof HTMLCanvasElement, 'canvas element exists');
+    this.assert(ctx instanceof CanvasRenderingContext2D, 'canvas context valid');
+
+    // Element cache tests
+    this.assert(typeof elements.get === 'function', 'elements.get is function');
+    this.assert(typeof elements.clear === 'function', 'elements.clear is function');
+
+    // Summary
+    const passed = this.results.filter(r => r.passed).length;
+    const total = this.results.length;
+    console.log(`Tests: ${passed}/${total} passed`);
+    if (passed === total) {
+      console.log('%c✓ All tests passed', 'color: #7ce8a8; font-weight: bold');
+    } else {
+      console.warn(`${total - passed} tests failed`);
+      this.results.filter(r => !r.passed).forEach(r => console.warn(`  ✗ ${r.name}`));
+    }
+    console.groupEnd();
+
+    return { passed, total, results: this.results };
+  }
+};
+
+// Run tests on load (non-blocking)
+setTimeout(() => tests.run(), 100);
+
+// Expose for console debugging
+window.innieCompass = { state, physics, trace, tests, regions, progression, CONFIG, elements };
+
+animate();
+logEvent('session_start');
+console.log('Innie Compass - self-evolving contemplative space');
+  </script>
+</body>
+</html>

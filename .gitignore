@@ -1,0 +1,32 @@
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment and secrets
+.env
+.env.local
+*.key
+*.pem
+
+# Build artifacts
+node_modules/
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Deployment artifacts (versioned directories and symlink)
+20251223-*/
+current

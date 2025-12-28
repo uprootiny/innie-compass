@@ -1,0 +1,234 @@
+;; ============================================================================
+;; INNIE COMPASS - Project Map for LLM Context Routing
+;; ============================================================================
+;; This map enables intelligent context selection when transforming the app.
+;; Queries are routed to appropriate system prompts and code sections based
+;; on their semantic intent category.
+;;
+;; Format: EDN (Extensible Data Notation) - Clojure-native, LLM-friendly
+;; ============================================================================
+
+{:project
+ {:name "Innie Compass"
+  :version "0.1.0"
+  :type :self-evolving-webapp
+  :description "A contemplative navigation space that can rewrite itself via LLM"
+  :url "https://www.hyperstitious.org/innie-compass/"
+  :source-file "index.html"
+  :architecture :single-file-spa}
+
+ ;; ---------------------------------------------------------------------------
+ ;; INTENT CATEGORIES - Used to route user queries to appropriate contexts
+ ;; ---------------------------------------------------------------------------
+ :intent-categories
+ {:visual
+  {:id :visual
+   :triggers ["look" "color" "style" "theme" "dark" "light" "bright" "dim"
+              "glow" "shadow" "gradient" "opacity" "transparency" "blur"
+              "texture" "aesthetic" "beautiful" "ugly" "font" "size"
+              "larger" "smaller" "accent" "palette" "warm" "cool"]
+   :description "Appearance, colors, visual effects, aesthetics"
+   :system-prompt-focus :css-and-canvas-rendering
+   :context-sections [:css-variables :draw-functions :visual-effects]}
+
+  :behavioral
+  {:id :behavioral
+   :triggers ["behave" "respond" "react" "when" "if" "momentum" "physics"
+              "speed" "slow" "fast" "smooth" "jerky" "delay" "immediate"
+              "drag" "scroll" "touch" "click" "hover" "gesture"]
+   :description "Interaction mechanics, physics, responsiveness"
+   :system-prompt-focus :javascript-interaction
+   :context-sections [:physics-state :event-handlers :animation-loop]}
+
+  :textual
+  {:id :textual
+   :triggers ["word" "text" "prompt" "question" "message" "label" "title"
+              "subtitle" "region" "name" "say" "write" "read" "language"
+              "tone" "voice" "contemplative" "meditative"]
+   :description "Words, prompts, labels, copy, language"
+   :system-prompt-focus :content-and-prompts
+   :context-sections [:regions-data :depth-prompts :ui-labels]}
+
+  :structural
+  {:id :structural
+   :triggers ["layout" "position" "where" "move" "arrange" "order" "sequence"
+              "hierarchy" "parent" "child" "contain" "wrap" "grid" "flex"
+              "header" "footer" "panel" "sidebar" "modal"]
+   :description "Layout, structure, component hierarchy"
+   :system-prompt-focus :html-structure
+   :context-sections [:html-elements :css-layout :component-structure]}
+
+  :interactive
+  {:id :interactive
+   :triggers ["touch" "tap" "swipe" "pinch" "zoom" "pan" "scroll" "wheel"
+              "keyboard" "key" "shortcut" "gesture" "mobile" "phone"
+              "tablet" "desktop" "responsive"]
+   :description "Touch/mouse/keyboard interaction, device adaptation"
+   :system-prompt-focus :input-handling
+   :context-sections [:event-handlers :touch-handling :responsive-css]}
+
+  :functional
+  {:id :functional
+   :triggers ["add" "remove" "feature" "capability" "can" "cannot" "enable"
+              "disable" "integrate" "connect" "api" "save" "load" "export"
+              "import" "share" "sync"]
+   :description "Features, capabilities, integrations"
+   :system-prompt-focus :feature-implementation
+   :context-sections [:full-javascript :api-integration :state-management]}
+
+  :meta
+  {:id :meta
+   :triggers ["transform" "evolve" "rewrite" "llm" "prompt" "trace"
+              "settings" "config" "api-key" "model" "openrouter"]
+   :description "Self-modification system, LLM integration"
+   :system-prompt-focus :meta-system
+   :context-sections [:llm-integration :trace-system :settings-panel]}}
+
+ ;; ---------------------------------------------------------------------------
+ ;; CODE SECTIONS - Mappable regions of the source for context extraction
+ ;; ---------------------------------------------------------------------------
+ :code-sections
+ {:css-variables
+  {:line-range [12 40]
+   :description "CSS custom properties defining color palette and design tokens"
+   :identifiers [:--bg-abyss :--bg-deep :--text-bright :--accent :--glow-soft
+                 :--ease-out-expo :--shadow-medium]}
+
+  :css-layout
+  {:line-range [70 150]
+   :description "CSS layout rules for app structure, header, footer, panels"
+   :identifiers [:.app :header :footer :.compass-container :.state-panel
+                 :.reflection-panel :.suggestion-panel :.settings-panel]}
+
+  :visual-effects
+  {:line-range [55 70]
+   :description "CSS for noise texture, ambient glow, backdrop filters"
+   :identifiers [:body::before :.compass-container::before :@keyframes]}
+
+  :responsive-css
+  {:line-range [596 630]
+   :description "Media queries for mobile/tablet adaptation"
+   :identifiers [:@media :max-width :max-height]}
+
+  :html-elements
+  {:line-range [631 762]
+   :description "HTML structure defining all UI elements"
+   :identifiers [:header :main :footer :canvas :.state-panel :.reflection-panel
+                 :.suggestion-panel :.settings-panel :.transform-overlay]}
+
+  :physics-state
+  {:line-range [779 802]
+   :description "Physics simulation state: velocity, friction, spring constants"
+   :identifiers [:physics :vx :vy :friction :springK :damping]}
+
+  :regions-data
+  {:line-range [1011 1037]
+   :description "Contemplative region definitions with prompts"
+   :identifiers [:regions :name :prompt :color :x :y :r]}
+
+  :depth-prompts
+  {:line-range [1031 1037]
+   :description "Depth-based prompt layers"
+   :identifiers [:depthPrompts :Surface :Noticing :Feeling :Understanding :Source]}
+
+  :draw-functions
+  {:line-range [1061 1279]
+   :description "Canvas rendering: background, grid, trail, regions, indicator"
+   :identifiers [:draw :drawGrid :drawTrail :drawRegions :drawIndicator]}
+
+  :event-handlers
+  {:line-range [1285 1378]
+   :description "Mouse, touch, wheel event handling"
+   :identifiers [:handleStart :handleMove :handleEnd :getCoords :toNormalized]}
+
+  :animation-loop
+  {:line-range [1380 1489]
+   :description "Main animation loop, state updates, physics application"
+   :identifiers [:animate :updateState :updateDisplay :cleanupTrail]}
+
+  :trace-system
+  {:line-range [808 888]
+   :description "Interaction tracing for LLM context"
+   :identifiers [:trace :logEvent :logRegionEnter :logRegionExit
+                 :generateTraceSummary :clearTrace]}
+
+  :llm-integration
+  {:line-range [936 1005]
+   :description "OpenRouter API integration, transformation logic"
+   :identifiers [:SYSTEM_PROMPT :transformSpace :getApiKey :getModel]}
+
+  :settings-panel
+  {:line-range [890 935]
+   :description "Settings UI: API key, model selection, trace display"
+   :identifiers [:toggleSettings :saveApiKey :saveModel :validateApiKey]}}
+
+ ;; ---------------------------------------------------------------------------
+ ;; SYSTEM PROMPTS - Specialized prompts for each transformation category
+ ;; ---------------------------------------------------------------------------
+ :system-prompts
+ {:base
+  "You are evolving 'Innie Compass', a contemplative single-file webapp.
+   Canvas-based navigation with X (Reflection-Expression), Y (Grounding-Expansion),
+   Z (Depth via scroll). Regions with prompts. Physics-based smooth movement.
+   RESPOND WITH ONLY complete HTML starting with <!DOCTYPE html>."
+
+  :css-and-canvas-rendering
+  "Focus on visual appearance. Key areas:
+   - CSS variables (lines 12-40): color palette, gradients, shadows
+   - Canvas drawing (lines 1061-1279): glow effects, trails, region styling
+   - Visual effects (lines 55-70): texture overlays, ambient animations
+   Preserve interaction mechanics. Maintain contemplative aesthetic."
+
+  :javascript-interaction
+  "Focus on behavior and physics. Key areas:
+   - Physics state (lines 779-802): friction, spring constants, velocity
+   - Event handlers (lines 1285-1378): drag, touch, scroll response
+   - Animation loop (lines 1380-1489): smoothing, easing, state updates
+   Preserve visual styling. Ensure mobile touch remains responsive."
+
+  :content-and-prompts
+  "Focus on textual content. Key areas:
+   - Regions data (lines 1011-1030): names and contemplative prompts
+   - Depth prompts (lines 1031-1037): layer-specific questions
+   - UI labels: axis labels, panel titles, button text
+   Preserve code structure. Maintain contemplative, non-judgmental tone."
+
+  :html-structure
+  "Focus on layout and structure. Key areas:
+   - HTML elements (lines 631-762): panels, canvas, overlays
+   - CSS layout (lines 70-150): flex, grid, positioning
+   - Responsive rules (lines 596-630): mobile adaptations
+   Preserve functionality. Consider touch-friendly sizing."
+
+  :input-handling
+  "Focus on input mechanics. Key areas:
+   - Event handlers (lines 1285-1378): mouse, touch, keyboard
+   - Touch handling: passive listeners, gesture prevention
+   - Responsive CSS (lines 596-630): device-specific adjustments
+   Preserve visual styling. Test on mobile mental model."
+
+  :feature-implementation
+  "Focus on capabilities. Consider:
+   - State management (state object, trace system)
+   - API integration (OpenRouter, localStorage)
+   - New features: audio, haptics, sharing, persistence
+   Maintain single-file architecture. Avoid external dependencies."
+
+  :meta-system
+  "Focus on self-modification system. Key areas:
+   - LLM integration (lines 936-1005): prompts, API calls
+   - Trace system (lines 808-888): event logging, summaries
+   - Settings (lines 890-935): API keys, model selection
+   This is the system that rewrites itself. Handle with care."}
+
+ ;; ---------------------------------------------------------------------------
+ ;; ROUTING RULES - How to match queries to categories
+ ;; ---------------------------------------------------------------------------
+ :routing
+ {:strategy :keyword-matching
+  :fallback :functional
+  :multi-match-resolution :first-match
+  :confidence-threshold 0.3
+  :notes "Match user query against triggers. Extract relevant code sections.
+          Prepend category-specific system prompt to base prompt.
+          Include only relevant code sections to minimize token usage."}}
