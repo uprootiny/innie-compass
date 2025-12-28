@@ -1012,11 +1012,22 @@ footer {
     <div class="settings-section">
       <h3>Model</h3>
       <select id="model-select" onchange="saveModel(this.value)">
-        <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
-        <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-        <option value="openai/gpt-4o">GPT-4o</option>
-        <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash</option>
-        <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B</option>
+        <optgroup label="Recommended">
+          <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
+          <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+        </optgroup>
+        <optgroup label="Free Models">
+          <option value="mistralai/devstral-small:free">Devstral Small (free)</option>
+          <option value="qwen/qwen-2.5-coder-32b-instruct:free">Qwen 2.5 Coder 32B (free)</option>
+          <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (free)</option>
+          <option value="deepseek/deepseek-chat:free">DeepSeek Chat (free)</option>
+          <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (free)</option>
+        </optgroup>
+        <optgroup label="Premium">
+          <option value="openai/gpt-4o">GPT-4o</option>
+          <option value="anthropic/claude-opus-4">Claude Opus 4</option>
+          <option value="google/gemini-2.5-pro-preview">Gemini 2.5 Pro</option>
+        </optgroup>
       </select>
     </div>
 
