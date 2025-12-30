@@ -16,9 +16,9 @@
   --bg-surface: #181822;
   --bg-elevated: #20202c;
   --text-bright: #eaeaf4;
-  --text-soft: #8888a0;
-  --text-dim: #585870;
-  --text-ghost: #383850;
+  --text-soft: #9898b0;
+  --text-dim: #6a6a88;
+  --text-ghost: #505068;
   --warmth: #e8a87c;
   --warmth-glow: rgba(232, 168, 124, 0.3);
   --coolness: #7ca8e8;
@@ -142,25 +142,24 @@ h1 {
   letter-spacing: 1px;
 }
 
-/* Settings toggle */
+/* Settings toggle - 44px touch target */
 .settings-toggle {
   position: absolute;
-  right: 12px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: all 0.3s var(--ease-out-expo);
-  box-shadow: var(--shadow-subtle), var(--shadow-inset);
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-out-expo);
+  box-shadow: var(--shadow-subtle), var(--shadow-inset);
 }
 
 .settings-toggle:hover, .settings-toggle:active {
@@ -207,6 +206,98 @@ h1 {
 .settings-backdrop.open {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* First-run onboarding overlay */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 6, 10, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s var(--ease-out-expo);
+}
+
+.onboarding-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.onboarding-content {
+  max-width: 320px;
+  text-align: center;
+}
+
+.onboarding-title {
+  font-size: 20px;
+  color: var(--text-bright);
+  margin-bottom: 24px;
+  letter-spacing: 2px;
+}
+
+.onboarding-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.onboarding-hint {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: left;
+}
+
+.onboarding-hint-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.onboarding-hint-text {
+  font-size: 14px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.onboarding-hint-text strong {
+  color: var(--text-bright);
+  font-weight: normal;
+}
+
+.onboarding-dismiss {
+  padding: 14px 32px;
+  background: var(--accent);
+  border: none;
+  border-radius: 24px;
+  color: var(--bg-abyss);
+  font-size: 14px;
+  font-family: Georgia, serif;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-out-expo);
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.onboarding-dismiss:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px var(--accent-glow);
 }
 
 .settings-close {
@@ -297,12 +388,13 @@ h1 {
 }
 
 .lang-btn {
-  padding: 8px 12px;
+  padding: 12px 16px;
+  min-height: 44px;
   background: var(--bg-deep);
   border: 1px solid var(--border);
   color: var(--text-dim);
-  border-radius: 6px;
-  font-size: 11px;
+  border-radius: 8px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -423,7 +515,7 @@ h1 {
 }
 
 .state-value {
-  font-family: 'SF Mono', monospace;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
   color: var(--text-soft);
   font-size: 10px;
   opacity: 0;
@@ -460,7 +552,7 @@ h1 {
 
 .journey-event-count {
   font-size: 8px;
-  font-family: 'SF Mono', monospace;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
   letter-spacing: 0.3px;
   color: var(--text-ghost);
   transition: color 0.6s var(--ease-out-expo);
@@ -495,7 +587,7 @@ h1 {
 
 .journey-pacing {
   font-size: 6px;
-  font-family: 'SF Mono', monospace;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
   color: var(--text-ghost);
   opacity: 0;
   transform: scale(0.9);
@@ -531,6 +623,29 @@ h1 {
 
 .reflection-panel.expanded {
   padding: 20px 24px 24px;
+}
+
+/* Tap affordance indicator */
+.reflection-panel::after {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 3px;
+  background: var(--text-ghost);
+  border-radius: 2px;
+  margin: 10px auto 0;
+  opacity: 0.5;
+  transition: all 0.3s var(--ease-out-expo);
+}
+
+.reflection-panel:hover::after {
+  opacity: 0.8;
+  width: 40px;
+}
+
+.reflection-panel.expanded::after {
+  opacity: 0.3;
+  width: 24px;
 }
 
 .reflection-prompt {
@@ -618,13 +733,17 @@ h1 {
 }
 
 .phrase-cloud-item {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-soft);
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 12px;
+  padding: 10px 14px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
   opacity: 0;
   animation: fadeInUp 0.3s var(--ease-out-expo) forwards;
+  cursor: default;
 }
 
 @keyframes fadeInUp {
@@ -674,7 +793,7 @@ footer {
 
 .stat-value {
   font-size: 13px;
-  font-family: 'SF Mono', monospace;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
   margin-top: 2px;
   color: var(--text-soft);
 }
@@ -684,14 +803,15 @@ footer {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: -18px;
+  bottom: -22px;
   background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-mid) 100%);
   border: 1px solid var(--border);
-  color: var(--text-ghost);
-  padding: 6px 14px;
-  border-radius: 0 0 12px 12px;
+  color: var(--text-dim);
+  padding: 12px 20px;
+  min-height: 44px;
+  border-radius: 0 0 14px 14px;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11px;
   font-family: Georgia, serif;
   z-index: 101;
   transition: all 0.4s var(--ease-out-expo);
@@ -978,7 +1098,7 @@ footer {
   .journey-log { top: 52px; right: 6px; }
   .journey-thread-wrap { height: 40px; }
   .journey-pacing { display: none; }
-  .settings-toggle { width: 32px; height: 32px; right: 10px; }
+  .settings-toggle { width: 40px; height: 40px; right: 6px; }
 }
 
 @media (max-height: 600px) {
@@ -1048,19 +1168,59 @@ footer {
     </main>
 
     <footer>
-      <div class="footer-stat">
-        <div class="stat-label">Stillness</div>
+      <div class="footer-stat" title="Time spent resting in one place">
+        <div class="stat-label">Rest</div>
         <div class="stat-value" id="stillness">0s</div>
       </div>
-      <div class="footer-stat">
-        <div class="stat-label">Wandering</div>
+      <div class="footer-stat" title="Regions you've visited">
+        <div class="stat-label">Visited</div>
         <div class="stat-value" id="wandering">0</div>
       </div>
-      <div class="footer-stat">
-        <div class="stat-label">Depth</div>
-        <div class="stat-value" id="depth-value">0.50</div>
+      <div class="footer-stat" title="Current depth layer (scroll to change)">
+        <div class="stat-label">Layer</div>
+        <div class="stat-value" id="depth-value">Surface</div>
       </div>
     </footer>
+  </div>
+
+  <!-- Onboarding overlay - first run -->
+  <div class="onboarding-overlay" id="onboarding-overlay">
+    <div class="onboarding-content">
+      <div class="onboarding-title">Welcome</div>
+      <div class="onboarding-hints">
+        <div class="onboarding-hint">
+          <div class="onboarding-hint-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 9l4 4 4-4M5 15l4 4 4-4"/>
+            </svg>
+          </div>
+          <div class="onboarding-hint-text">
+            <strong>Drag</strong> to wander through contemplative regions
+          </div>
+        </div>
+        <div class="onboarding-hint">
+          <div class="onboarding-hint-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4"/>
+            </svg>
+          </div>
+          <div class="onboarding-hint-text">
+            <strong>Scroll</strong> to descend into deeper layers
+          </div>
+        </div>
+        <div class="onboarding-hint">
+          <div class="onboarding-hint-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 19V5m-7 7l7-7 7 7"/>
+            </svg>
+          </div>
+          <div class="onboarding-hint-text">
+            <strong>Tap prompts</strong> to reveal more reflections
+          </div>
+        </div>
+      </div>
+      <button class="onboarding-dismiss" onclick="dismissOnboarding()">Begin</button>
+    </div>
   </div>
 
   <!-- Settings backdrop -->
@@ -2066,6 +2226,28 @@ document.getElementById('api-key').value = getApiKey();
 document.getElementById('model-select').value = getModel();
 validateApiKey(getApiKey());
 updateLanguageSettingsUI();
+
+// Onboarding - show on first visit
+function showOnboarding() {
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) {
+    requestAnimationFrame(() => overlay.classList.add('visible'));
+  }
+}
+
+function dismissOnboarding() {
+  const overlay = document.getElementById('onboarding-overlay');
+  if (overlay) {
+    overlay.classList.remove('visible');
+    localStorage.setItem('innie-compass-onboarded', 'true');
+  }
+}
+
+// Check if first visit
+if (!localStorage.getItem('innie-compass-onboarded')) {
+  // Delay slightly so page renders first
+  setTimeout(showOnboarding, 500);
+}
 
 // =========================================================================
 // LLM TRANSFORMATION with Intent-Based Context Routing
@@ -3324,8 +3506,10 @@ function updateDisplay(region, depthLevel) {
 
   const stillness = Math.floor((Date.now() - state.stillnessStart) / 1000);
   if (stillnessEl) stillnessEl.textContent = stillness + 's';
-  if (wanderingEl) wanderingEl.textContent = state.wanderCount;
-  if (depthValueEl) depthValueEl.textContent = state.smoothZ.toFixed(2);
+  if (wanderingEl) wanderingEl.textContent = trace.regionsVisited.size;
+  // Show depth layer name instead of number
+  const currentDepthLayer = depthPrompts.find(d => state.smoothZ >= d.min && state.smoothZ < d.max) || depthPrompts[0];
+  if (depthValueEl) depthValueEl.textContent = currentDepthLayer.label;
 }
 
 // Trail cleanup
